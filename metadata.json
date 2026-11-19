@@ -1,0 +1,6 @@
+{
+  "name": "Potion Sort",
+  "description": "Vertical mobile liquid-sorting puzzle concept pitch with 3 distinct themes, art directions, and interactive Home & Gameplay screen previews.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,348 @@
+import React, { useState } from 'react';
+import { Flame, Lock, Map as MapIcon, Plus, ShieldCheck } from 'lucide-react';
+import { getNextLifeCountdownMs } from '../game/storage';
+import type { AppScreen, PlayerProfile } from '../game/types';
+import {
+  CastleHome3DIcon,
+  Cauldron3DIcon,
+  Coin3DIcon,
+  Gear3DIcon,
+  Heart3DIcon,
+  Salons3DIcon,
+  Shop3DIcon,
+  Trophy3DIcon,
+} from './GameIcons3D';
+
+interface TitleHomeScreenProps {
+  profile: PlayerProfile;
+  nowMs: number;
+  onPlayLevel: (levelNumber: number) => void;
+  onNavigate: (screen: AppScreen) => void;
+  onOpenSettings: () => void;
+  onOpenLivesModal: () => void;
+}
+
+function formatCountdown(ms: number): string {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
+  profile,
+  nowMs,
+  onPlayLevel,
+  onNavigate,
+  onOpenSettings,
+  onOpenLivesModal,
+}) => {
+  const [showStreakTip, setShowStreakTip] = useState(false);
+
+  const lifeCountdown = getNextLifeCountdownMs(profile, nowMs);
+  const totalIngredients =
+    profile.ingredients.citrus +
+    profile.ingredients.crystal +
+    profile.ingredients.dew +
+    profile.ingredients.mist;
+
+  const streakTierText =
+    profile.streak >= 3
+      ? 'Tier 3: 2 Auto-Pours + 1 Free Undo'
+      : profile.streak === 2
+      ? 'Tier 2: 2 Opening Auto-Pours'
+      : profile.streak === 1
+      ? 'Tier 1: 1 Opening Auto-Pour'
+      : 'Win levels in a row to unlock opening auto-pours!';
+
+  return (
+    <div className="relative w-full h-full flex flex-col justify-between overflow-hidden font-game-body select-none">
+      {/* Locked Sunlit Conservatory Key Art (Fox Alchemist + Sky Dragon + Purple Cauldron) */}
+      <img
+        src="/src/assets/images/solstice_home_3d_scene_1794980022597.jpg"
+        alt="Solstice Sort sunlit alchemy cottage workshop with fox alchemist and sky dragon"
+        referrerPolicy="no-referrer"
+        className="absolute inset-0 w-full h-full object-cover object-center"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#2E0E5E]/40 via-transparent to-[#2D104F]/48" />
+
+      {/* TOP BAR (Avatar, Coins Pill, Hearts Pill, 3D Settings) */}
+      <header className="relative z-20 pt-3.5 px-3 flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Fox Alchemist Mascot Portrait */}
+          <button
+            type="button"
+            onClick={() => onNavigate('LEVEL_MAP')}
+            aria-label={`Open Solarium Map (Level ${profile.highestLevel})`}
+            className="relative w-12 h-12 rounded-2xl border-[3px] border-[#FFE875] bg-[#6D23E8] shadow-[0_4px_0_#2E0870] overflow-visible cursor-pointer shrink-0 active:translate-y-0.5"
+          >
+            <img
+              src="/src/assets/images/solstice_mascot_avatar_1794980022747.jpg"
+              alt="Fox alchemist mascot portrait"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover rounded-[13px]"
+            />
+            {totalIngredients >= 3 && (
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#E81938] border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow"
+              >
+                !
+              </span>
+            )}
+          </button>
+
+          {/* Coins Pill */}
+          <div className="relative flex items-center">
+            <div
+              aria-label={`Coins ${profile.coins}`}
+              className="flex items-center pl-7 pr-3 py-1 rounded-full bg-[#FFF9E6] border-[2.5px] border-[#F7B529] shadow-[0_3px_0_#9E5D05] text-[#4D2405] text-sm font-black font-tabular"
+            >
+              <span>{profile.coins.toLocaleString()}</span>
+            </div>
+            <div className="absolute -left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Coin3DIcon className="w-8 h-8 drop-shadow" />
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate('SHOP')}
+              aria-label="Open Shop for coins and boosters"
+              className="absolute -bottom-1.5 left-4 z-10 w-4 h-4 rounded-full bg-[#36DC15] border-[1.5px] border-[#135403] text-white flex items-center justify-center shadow cursor-pointer"
+            >
+              <Plus className="w-3 h-3 stroke-[3.5]" />
+            </button>
+          </div>
+
+          {/* Hearts / Lives Pill */}
+          <div className="relative flex items-center ml-1">
+            <button
+              type="button"
+              onClick={onOpenLivesModal}
+              aria-label={`Lives ${profile.lives} of ${profile.maxLives}`}
+              className="flex items-center pl-7 pr-3 py-1 rounded-full bg-[#FFF9E6] border-[2.5px] border-[#F7B529] shadow-[0_3px_0_#9E5D05] text-[#4D2405] text-sm font-black font-tabular cursor-pointer"
+            >
+              <span>
+                {profile.lives < profile.maxLives ? formatCountdown(lifeCountdown) : 'FULL'}
+              </span>
+            </button>
+            <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
+              <Heart3DIcon className="w-8 h-8 drop-shadow" />
+              <span className="absolute text-white font-game-display font-bold text-xs game-stroke-sm">
+                {profile.lives}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenLivesModal}
+              aria-label="Refill lives"
+              className="absolute -bottom-1.5 left-4 z-10 w-4 h-4 rounded-full bg-[#36DC15] border-[1.5px] border-[#135403] text-white flex items-center justify-center shadow cursor-pointer"
+            >
+              <Plus className="w-3 h-3 stroke-[3.5]" />
+            </button>
+          </div>
+        </div>
+
+        {/* 3D Gear Settings Button */}
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          aria-label="Open settings"
+          className="candy-btn-blue w-11 h-11 rounded-2xl flex items-center justify-center cursor-pointer shrink-0"
+        >
+          <Gear3DIcon className="w-7 h-7" />
+        </button>
+      </header>
+
+      {/* ROYAL PURPLE-GOLD TITLE LOCKUP */}
+      <div className="relative z-20 px-4 pt-1 flex flex-col items-center">
+        <div className="animate-gentle-float inline-flex flex-col items-center px-7 py-2 rounded-full bg-gradient-to-b from-[#6626C9] to-[#3B1085] border-[3px] border-[#FFE875] shadow-[0_5px_0_#240657,0_10px_20px_rgba(32,6,72,0.5)] pointer-events-none">
+          <h1 className="font-game-display text-[23px] leading-none font-bold tracking-wide text-[#FFE96B] game-stroke-md">
+            Solstice Sort
+          </h1>
+          <span className="text-[9px] font-black uppercase tracking-[0.22em] text-[#F2E5FF] mt-1">
+            Sunlit Conservatory
+          </span>
+        </div>
+      </div>
+
+      {/* EDGE-RAIL FLOATING ICON BADGES */}
+      <div className="relative z-20 flex-1 flex items-start justify-between px-2.5 pt-2 pointer-events-none">
+        {/* Left Edge Rail: Gala + Map */}
+        <div className="flex flex-col gap-2.5 pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => onNavigate('EVENT')}
+            aria-label={`Azure Gala Event (${profile.eventStars} of 100 stars)`}
+            className="candy-btn-purple w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+          >
+            <Trophy3DIcon className="w-8 h-8" />
+            <span className="text-[10px] font-black text-white leading-tight game-stroke-xs">
+              Gala
+            </span>
+            <span className="mt-0.5 px-1.5 rounded-full bg-[#240657]/75 text-[#FFE97D] text-[9px] font-black font-tabular">
+              {profile.eventStars}/100
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('LEVEL_MAP')}
+            aria-label="Open Level Map"
+            className="candy-btn-blue w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+          >
+            <MapIcon className="w-6 h-6 text-[#FFF4B8] drop-shadow" />
+            <span className="text-[10px] font-black text-white leading-tight mt-0.5 game-stroke-xs">
+              Map
+            </span>
+            <span className="mt-0.5 px-1.5 rounded-full bg-[#092F73]/75 text-[#FFF7DF] text-[9px] font-black font-tabular">
+              Lv {profile.highestLevel}
+            </span>
+          </button>
+        </div>
+
+        {/* Right Edge Rail: Solstice Streak + Remove Ads */}
+        <div className="flex flex-col items-end gap-2.5 pointer-events-auto">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowStreakTip((v) => !v)}
+              aria-label={`Solstice Streak ${profile.streak} wins`}
+              className="candy-btn-gold w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+            >
+              <Flame className="w-7 h-7 text-[#E81938] fill-[#FF5A26] drop-shadow" />
+              <span className="text-[10px] font-black text-white leading-tight game-stroke-xs">
+                Streak
+              </span>
+              <span className="mt-0.5 px-1.5 rounded-full bg-[#6E3402]/80 text-[#FFF7DF] text-[9px] font-black font-tabular">
+                {profile.streak > 0 ? `x${profile.streak}` : 'Ready'}
+              </span>
+            </button>
+
+            {showStreakTip && (
+              <div className="absolute right-[70px] top-0 w-48 candy-panel-frame rounded-2xl p-2.5 text-left z-30">
+                <div className="text-[11px] font-black text-[#FFF7D6]">
+                  Solstice Streak · {profile.streak} {profile.streak === 1 ? 'Win' : 'Wins'}
+                </div>
+                <div className="text-[10px] font-bold text-[#4A2305] bg-[#FFF8E6] rounded-xl p-1.5 mt-1 leading-snug">
+                  {streakTierText}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('SHOP')}
+            aria-label={profile.adsRemoved ? 'Ad-Free Active' : 'Remove Ads'}
+            className="candy-btn-purple w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+          >
+            <ShieldCheck
+              className={`w-7 h-7 drop-shadow ${
+                profile.adsRemoved ? 'text-[#FFE875]' : 'text-white'
+              }`}
+            />
+            <span className="text-[10px] font-black text-white leading-tight mt-0.5 game-stroke-xs">
+              {profile.adsRemoved ? 'Ad-Free' : 'No Ads'}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* BOTTOM SECTION: Giant Candy-Green Play Button + Royal Violet-Purple 5-Tab Dock */}
+      <div className="relative z-20 flex flex-col items-center">
+        <div className="w-full px-10 mb-5 flex flex-col items-center">
+          <button
+            type="button"
+            data-start="true"
+            onClick={() => onPlayLevel(profile.highestLevel)}
+            className="candy-btn-green w-full max-w-[260px] py-3.5 rounded-[24px] flex flex-col items-center justify-center cursor-pointer transition-transform"
+          >
+            <span className="font-game-display text-[28px] leading-none font-bold text-white game-stroke-lg tracking-wide">
+              Level {profile.highestLevel}
+            </span>
+            {profile.streak > 0 && (
+              <span className="mt-1 px-2.5 py-0.5 rounded-full bg-[#114D02]/85 text-[#FFE97D] text-[10px] font-black tracking-wide">
+                Streak x{profile.streak} Boost Ready
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* 5-Tab Royal Violet-Purple & Gold Bottom Dock */}
+        <nav
+          aria-label="Primary game sections"
+          className="w-full grid grid-cols-5 items-end bg-gradient-to-b from-[#6B2DE0] via-[#531EB8] to-[#3B108C] border-t-[3.5px] border-[#FFE875] shadow-[0_-4px_18px_rgba(32,6,72,0.5)] pt-1.5 pb-2 px-1"
+        >
+          <button
+            type="button"
+            onClick={() => onNavigate('SHOP')}
+            className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer border-r border-[#FFE875]/25"
+          >
+            <Shop3DIcon className="w-8 h-8 drop-shadow" />
+            <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5">
+              Shop
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('EVENT')}
+            className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer border-r border-[#FFE875]/25"
+          >
+            <Trophy3DIcon className="w-8 h-8 drop-shadow" />
+            <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5">
+              Events
+            </span>
+          </button>
+
+          {/* Active Raised Center Home Tab */}
+          <button
+            type="button"
+            onClick={() => onPlayLevel(profile.highestLevel)}
+            aria-label={`Play Level ${profile.highestLevel} from Home`}
+            className="relative -mt-5 pt-2 pb-1 flex flex-col items-center justify-center rounded-t-2xl bg-gradient-to-b from-[#7E3FF2] to-[#4A17B5] border-t-[3.5px] border-x-[3px] border-[#FFE875] shadow-[0_-4px_14px_rgba(32,6,72,0.45)] cursor-pointer"
+          >
+            <CastleHome3DIcon className="w-11 h-11 drop-shadow-md" />
+            <span className="text-[12px] font-game-display font-bold text-white game-stroke-xs leading-none mt-0.5">
+              Home
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('SALONS')}
+            className="relative flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer border-r border-[#FFE875]/25"
+          >
+            <div className="relative">
+              <Salons3DIcon className="w-8 h-8 drop-shadow" />
+              <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-[#FFE45E] border border-[#3B108C] flex items-center justify-center">
+                <Lock className="w-2.5 h-2.5 text-[#3B108C]" />
+              </span>
+            </div>
+            <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5">
+              Salons
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('ALEMBIC')}
+            className="relative flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer"
+          >
+            <div className="relative">
+              <Cauldron3DIcon className="w-8 h-8 drop-shadow" />
+              {totalIngredients > 0 && (
+                <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#E81938] border border-white text-white text-[9px] font-black flex items-center justify-center font-tabular">
+                  {totalIngredients}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5">
+              Alembic
+            </span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  );
+};

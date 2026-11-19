@@ -1,0 +1,416 @@
+@import "tailwindcss";
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Nunito', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+}
+
+.font-game-display {
+  font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+}
+
+.font-game-body {
+  font-family: 'Nunito', system-ui, sans-serif;
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Warm-espresso outlined 3D casual game typography */
+.game-stroke-xs {
+  -webkit-text-stroke: 1.6px #4a1e04;
+  paint-order: stroke fill;
+  text-shadow: 0 1.5px 0 #4a1e04;
+}
+
+.game-stroke-sm {
+  -webkit-text-stroke: 2.4px #4a1e04;
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 #4a1e04;
+}
+
+.game-stroke-md {
+  -webkit-text-stroke: 3.5px #4a1e04;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #4a1e04;
+}
+
+.game-stroke-lg {
+  -webkit-text-stroke: 5px #143606;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #143606;
+}
+
+/* 3D Candy-Jelly Glossy Game Buttons */
+.candy-btn-green {
+  background: linear-gradient(180deg, #74f235 0%, #2fc40c 52%, #199403 100%);
+  border: 3px solid #ffe875;
+  box-shadow:
+    0 6px 0 #136802,
+    0 10px 18px rgba(74, 34, 4, 0.35),
+    inset 0 3px 2px rgba(255, 255, 255, 0.68);
+}
+.candy-btn-green:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 #136802,
+    0 4px 8px rgba(74, 34, 4, 0.3),
+    inset 0 2px 2px rgba(255, 255, 255, 0.55);
+}
+
+.candy-btn-blue {
+  background: linear-gradient(180deg, #57c2ff 0%, #2383f5 52%, #1256c4 100%);
+  border: 3px solid #ffe875;
+  box-shadow:
+    0 5px 0 #0a368a,
+    0 8px 14px rgba(74, 34, 4, 0.32),
+    inset 0 3px 2px rgba(255, 255, 255, 0.62);
+}
+.candy-btn-blue:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #0a368a,
+    0 4px 8px rgba(74, 34, 4, 0.28),
+    inset 0 2px 2px rgba(255, 255, 255, 0.5);
+}
+
+.candy-btn-teal {
+  background: linear-gradient(180deg, #3ee8cb 0%, #15b89a 52%, #0a856f 100%);
+  border: 3px solid #ffe875;
+  box-shadow:
+    0 5px 0 #05594a,
+    0 8px 14px rgba(74, 34, 4, 0.32),
+    inset 0 3px 2px rgba(255, 255, 255, 0.62);
+}
+.candy-btn-teal:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #05594a,
+    0 4px 8px rgba(74, 34, 4, 0.28),
+    inset 0 2px 2px rgba(255, 255, 255, 0.5);
+}
+
+.candy-btn-amber {
+  background: linear-gradient(180deg, #ffb947 0%, #f57c14 54%, #c95104 100%);
+  border: 3px solid #fff2b2;
+  box-shadow:
+    0 5px 0 #8a3200,
+    0 8px 14px rgba(74, 34, 4, 0.32),
+    inset 0 3px 2px rgba(255, 255, 255, 0.65);
+}
+.candy-btn-amber:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #8a3200,
+    0 4px 8px rgba(74, 34, 4, 0.28),
+    inset 0 2px 2px rgba(255, 255, 255, 0.5);
+}
+
+.candy-btn-gold {
+  background: linear-gradient(180deg, #ffe566 0%, #f7aa16 55%, #d67604 100%);
+  border: 3px solid #fff6c9;
+  box-shadow:
+    0 5px 0 #944e00,
+    0 8px 14px rgba(74, 34, 4, 0.32),
+    inset 0 3px 2px rgba(255, 255, 255, 0.72);
+}
+.candy-btn-gold:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #944e00,
+    0 4px 8px rgba(74, 34, 4, 0.28),
+    inset 0 2px 2px rgba(255, 255, 255, 0.55);
+}
+
+.candy-btn-purple {
+  background: linear-gradient(180deg, #aa5eff 0%, #7126e8 54%, #4910aa 100%);
+  border: 3px solid #ffe875;
+  box-shadow:
+    0 5px 0 #2e0870,
+    0 8px 14px rgba(45, 12, 88, 0.38),
+    inset 0 3px 2px rgba(255, 255, 255, 0.58);
+}
+.candy-btn-purple:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 0 #2e0870,
+    0 4px 8px rgba(45, 12, 88, 0.3),
+    inset 0 2px 2px rgba(255, 255, 255, 0.48);
+}
+
+.candy-btn-green:disabled,
+.candy-btn-blue:disabled,
+.candy-btn-teal:disabled,
+.candy-btn-amber:disabled,
+.candy-btn-gold:disabled,
+.candy-btn-purple:disabled {
+  background: linear-gradient(180deg, #e5ddd0 0%, #c4b8a6 100%);
+  border-color: #9e8f7a;
+  box-shadow:
+    0 4px 0 #7a6b57,
+    inset 0 2px 2px rgba(255, 255, 255, 0.55);
+  color: #f9f6f0;
+  opacity: 0.94;
+}
+
+/* Warm Golden-Amber Sunlit 3D Panel Frame */
+.candy-panel-frame {
+  background: linear-gradient(180deg, #ffb438 0%, #e0760b 100%);
+  border: 3.5px solid #fff1ad;
+  box-shadow:
+    0 8px 0 #8c3d03,
+    0 18px 36px rgba(66, 28, 3, 0.45),
+    inset 0 2px 2px rgba(255, 255, 255, 0.55);
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cork-pop {
+  0% {
+    transform: translateY(-16px) scale(0.5);
+    opacity: 0;
+  }
+  65% {
+    transform: translateY(2px) scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0px) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.14);
+    opacity: 1;
+  }
+}
+
+@keyframes mascot-cheer {
+  0% {
+    transform: translateY(6px) scale(0.92);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-2px) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0px) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes liquid-swell {
+  0% {
+    transform: scaleY(0.12);
+    opacity: 0.78;
+  }
+  58% {
+    transform: scaleY(1.08);
+    opacity: 1;
+  }
+  82% {
+    transform: scaleY(0.97);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes meniscus-ripple {
+  0% {
+    transform: scaleX(0.7) scaleY(1.75);
+  }
+  40% {
+    transform: scaleX(1.07) scaleY(0.75);
+  }
+  72% {
+    transform: scaleX(0.96) scaleY(1.18);
+  }
+  100% {
+    transform: scaleX(1) scaleY(1);
+  }
+}
+
+@keyframes stream-draw {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 0.95;
+  }
+  28% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  68% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -102;
+    opacity: 0.1;
+  }
+}
+
+@keyframes splash-ring {
+  0% {
+    transform: scale(0.35);
+    opacity: 0.95;
+  }
+  60% {
+    transform: scale(1.25);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+.animate-gentle-float {
+  animation: gentle-float 3.4s ease-in-out infinite;
+}
+
+.animate-cork-pop {
+  animation: cork-pop 0.38s cubic-bezier(0.22, 1.28, 0.36, 1) forwards;
+}
+
+.animate-sparkle-pulse {
+  animation: sparkle-pulse 1.8s ease-in-out infinite;
+}
+
+.animate-mascot-cheer {
+  animation: mascot-cheer 0.32s ease-out forwards;
+}
+
+.animate-liquid-swell {
+  animation: liquid-swell 0.42s cubic-bezier(0.22, 1.2, 0.36, 1) 0.1s both;
+}
+
+.animate-meniscus-ripple {
+  animation: meniscus-ripple 0.44s ease-out 0.14s both;
+}
+
+.animate-stream-draw {
+  stroke-dasharray: 100 110;
+  animation: stream-draw 0.56s cubic-bezier(0.35, 0, 0.2, 1) forwards;
+}
+
+.animate-splash-ring {
+  animation: splash-ring 0.44s ease-out 0.14s both;
+}
+
+@keyframes mascot-breathe {
+  0%, 100% {
+    transform: translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateY(-1.5px) scaleY(1.025);
+  }
+}
+
+@keyframes mascot-clap-bounce {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  20% {
+    transform: translateY(-8px) scale(1.06) rotate(-3deg);
+  }
+  40% {
+    transform: translateY(0px) scale(0.98) rotate(2deg);
+  }
+  60% {
+    transform: translateY(-6px) scale(1.05) rotate(-2deg);
+  }
+  80% {
+    transform: translateY(-1px) scale(1.01) rotate(1deg);
+  }
+}
+
+@keyframes paw-clap-left {
+  0%, 100% {
+    transform: translateX(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateX(5px) rotate(18deg);
+  }
+}
+
+@keyframes paw-clap-right {
+  0%, 100% {
+    transform: translateX(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-5px) rotate(-18deg);
+  }
+}
+
+@keyframes tail-wag {
+  0%, 100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+.animate-mascot-breathe {
+  animation: mascot-breathe 3.2s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.animate-mascot-clap-bounce {
+  animation: mascot-clap-bounce 0.72s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.animate-paw-clap-left {
+  animation: paw-clap-left 0.24s ease-in-out infinite;
+}
+
+.animate-paw-clap-right {
+  animation: paw-clap-right 0.24s ease-in-out infinite;
+}
+
+.animate-tail-wag {
+  animation: tail-wag 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-gentle-float,
+  .animate-cork-pop,
+  .animate-sparkle-pulse,
+  .animate-mascot-cheer,
+  .animate-liquid-swell,
+  .animate-meniscus-ripple,
+  .animate-stream-draw,
+  .animate-splash-ring,
+  .animate-mascot-breathe,
+  .animate-mascot-clap-bounce,
+  .animate-paw-clap-left,
+  .animate-paw-clap-right,
+  .animate-tail-wag {
+    animation: none;
+  }
+}

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Flame, Lock, Map as MapIcon, Plus, ShieldCheck } from 'lucide-react';
 import { getNextLifeCountdownMs } from '../game/storage';
 import type { AppScreen, PlayerProfile } from '../game/types';
 import {
@@ -8,8 +7,13 @@ import {
   Coin3DIcon,
   Gear3DIcon,
   Heart3DIcon,
+  Lock3DIcon,
+  Map3DIcon,
+  PlusBadge3DIcon,
   Salons3DIcon,
+  ShieldCheck3DIcon,
   Shop3DIcon,
+  StreakFlame3DIcon,
   Trophy3DIcon,
 } from './GameIcons3D';
 
@@ -92,37 +96,37 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             )}
           </button>
 
-          {/* Coins Pill */}
+          {/* Coins Pill (9-slice Cream-Gold Capsule) */}
           <div className="relative flex items-center">
             <div
               aria-label={`Coins ${profile.coins}`}
-              className="flex items-center pl-7 pr-3 py-1 rounded-full bg-[#FFF9E6] border-[2.5px] border-[#F7B529] shadow-[0_3px_0_#9E5D05] text-[#4D2405] text-sm font-black font-tabular"
+              className="candy-pill-cream flex items-center pl-7 pr-3.5 py-1.5 text-[#5A2906] text-sm font-black font-tabular leading-none"
             >
               <span>{profile.coins.toLocaleString()}</span>
             </div>
-            <div className="absolute -left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
               <Coin3DIcon className="w-8 h-8 drop-shadow" />
             </div>
             <button
               type="button"
               onClick={() => onNavigate('SHOP')}
               aria-label="Open Shop for coins and boosters"
-              className="absolute -bottom-1.5 left-4 z-10 w-4 h-4 rounded-full bg-[#36DC15] border-[1.5px] border-[#135403] text-white flex items-center justify-center shadow cursor-pointer"
+              className="absolute -bottom-1.5 left-3.5 z-10 w-[18px] h-[18px] flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
             >
-              <Plus className="w-3 h-3 stroke-[3.5]" />
+              <PlusBadge3DIcon className="w-full h-full drop-shadow" />
             </button>
           </div>
 
-          {/* Hearts / Lives Pill */}
+          {/* Hearts / Lives Pill (9-slice Cream-Gold Capsule) */}
           <div className="relative flex items-center ml-1">
             <button
               type="button"
               onClick={onOpenLivesModal}
               aria-label={`Lives ${profile.lives} of ${profile.maxLives}`}
-              className="flex items-center pl-7 pr-3 py-1 rounded-full bg-[#FFF9E6] border-[2.5px] border-[#F7B529] shadow-[0_3px_0_#9E5D05] text-[#4D2405] text-sm font-black font-tabular cursor-pointer"
+              className="candy-pill-cream flex items-center pl-7 pr-3.5 py-1.5 text-[#5A2906] text-sm font-black font-tabular leading-none cursor-pointer"
             >
               <span>
-                {profile.lives < profile.maxLives ? formatCountdown(lifeCountdown) : 'FULL'}
+                {profile.lives < profile.maxLives ? formatCountdown(lifeCountdown) : 'Full'}
               </span>
             </button>
             <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
@@ -135,27 +139,27 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
               type="button"
               onClick={onOpenLivesModal}
               aria-label="Refill lives"
-              className="absolute -bottom-1.5 left-4 z-10 w-4 h-4 rounded-full bg-[#36DC15] border-[1.5px] border-[#135403] text-white flex items-center justify-center shadow cursor-pointer"
+              className="absolute -bottom-1.5 left-3.5 z-10 w-[18px] h-[18px] flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
             >
-              <Plus className="w-3 h-3 stroke-[3.5]" />
+              <PlusBadge3DIcon className="w-full h-full drop-shadow" />
             </button>
           </div>
         </div>
 
-        {/* 3D Gear Settings Button */}
+        {/* 3D Gear Settings Button (9-slice Blue Square) */}
         <button
           type="button"
           onClick={onOpenSettings}
           aria-label="Open settings"
-          className="candy-btn-blue w-11 h-11 rounded-2xl flex items-center justify-center cursor-pointer shrink-0"
+          className="candy-btn-blue w-11 h-11 flex items-center justify-center cursor-pointer shrink-0"
         >
           <Gear3DIcon className="w-7 h-7" />
         </button>
       </header>
 
-      {/* ROYAL PURPLE-GOLD TITLE LOCKUP */}
+      {/* ROYAL PURPLE-GOLD TITLE LOCKUP (9-Slice 3D Panel) */}
       <div className="relative z-20 px-4 pt-1 flex flex-col items-center">
-        <div className="animate-gentle-float inline-flex flex-col items-center px-7 py-2 rounded-full bg-gradient-to-b from-[#6626C9] to-[#3B1085] border-[3px] border-[#FFE875] shadow-[0_5px_0_#240657,0_10px_20px_rgba(32,6,72,0.5)] pointer-events-none">
+        <div className="animate-gentle-float candy-panel-purple inline-flex flex-col items-center px-7 py-2 pointer-events-none">
           <h1 className="font-game-display text-[23px] leading-none font-bold tracking-wide text-[#FFE96B] game-stroke-md">
             Solstice Sort
           </h1>
@@ -173,7 +177,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             type="button"
             onClick={() => onNavigate('EVENT')}
             aria-label={`Azure Gala Event (${profile.eventStars} of 100 stars)`}
-            className="candy-btn-purple w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+            className="candy-btn-purple w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
           >
             <Trophy3DIcon className="w-8 h-8" />
             <span className="text-[10px] font-black text-white leading-tight game-stroke-xs">
@@ -188,9 +192,9 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             type="button"
             onClick={() => onNavigate('LEVEL_MAP')}
             aria-label="Open Level Map"
-            className="candy-btn-blue w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+            className="candy-btn-blue w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
           >
-            <MapIcon className="w-6 h-6 text-[#FFF4B8] drop-shadow" />
+            <Map3DIcon className="w-8 h-7 drop-shadow" />
             <span className="text-[10px] font-black text-white leading-tight mt-0.5 game-stroke-xs">
               Map
             </span>
@@ -207,9 +211,9 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
               type="button"
               onClick={() => setShowStreakTip((v) => !v)}
               aria-label={`Solstice Streak ${profile.streak} wins`}
-              className="candy-btn-gold w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+              className="candy-btn-gold w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
             >
-              <Flame className="w-7 h-7 text-[#E81938] fill-[#FF5A26] drop-shadow" />
+              <StreakFlame3DIcon className="w-7 h-7 drop-shadow" />
               <span className="text-[10px] font-black text-white leading-tight game-stroke-xs">
                 Streak
               </span>
@@ -219,7 +223,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             </button>
 
             {showStreakTip && (
-              <div className="absolute right-[70px] top-0 w-48 candy-panel-frame rounded-2xl p-2.5 text-left z-30">
+              <div className="absolute right-[72px] top-0 w-48 candy-panel-frame rounded-2xl p-2.5 text-left z-30">
                 <div className="text-[11px] font-black text-[#FFF7D6]">
                   Solstice Streak · {profile.streak} {profile.streak === 1 ? 'Win' : 'Wins'}
                 </div>
@@ -234,13 +238,9 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             type="button"
             onClick={() => onNavigate('SHOP')}
             aria-label={profile.adsRemoved ? 'Ad-Free Active' : 'Remove Ads'}
-            className="candy-btn-purple w-[64px] py-1.5 px-1 rounded-2xl flex flex-col items-center cursor-pointer"
+            className="candy-btn-purple w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
           >
-            <ShieldCheck
-              className={`w-7 h-7 drop-shadow ${
-                profile.adsRemoved ? 'text-[#FFE875]' : 'text-white'
-              }`}
-            />
+            <ShieldCheck3DIcon className="w-7 h-7 drop-shadow" />
             <span className="text-[10px] font-black text-white leading-tight mt-0.5 game-stroke-xs">
               {profile.adsRemoved ? 'Ad-Free' : 'No Ads'}
             </span>
@@ -248,14 +248,14 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM SECTION: Giant Candy-Green Play Button + Royal Violet-Purple 5-Tab Dock */}
+      {/* BOTTOM SECTION: Giant 9-Slice Candy-Green Play Button + Royal Violet-Purple 5-Tab Dock */}
       <div className="relative z-20 flex flex-col items-center">
         <div className="w-full px-10 mb-5 flex flex-col items-center">
           <button
             type="button"
             data-start="true"
             onClick={() => onPlayLevel(profile.highestLevel)}
-            className="candy-btn-green w-full max-w-[260px] py-3.5 rounded-[24px] flex flex-col items-center justify-center cursor-pointer transition-transform"
+            className="candy-btn-green-pill w-full max-w-[244px] py-4 flex flex-col items-center justify-center cursor-pointer"
           >
             <span className="font-game-display text-[28px] leading-none font-bold text-white game-stroke-lg tracking-wide">
               Level {profile.highestLevel}
@@ -315,8 +315,8 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
           >
             <div className="relative">
               <Salons3DIcon className="w-8 h-8 drop-shadow" />
-              <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-[#FFE45E] border border-[#3B108C] flex items-center justify-center">
-                <Lock className="w-2.5 h-2.5 text-[#3B108C]" />
+              <span className="absolute -top-1 -right-1.5 w-4 h-4 flex items-center justify-center">
+                <Lock3DIcon className="w-4 h-4 drop-shadow" />
               </span>
             </div>
             <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5">

@@ -48,101 +48,111 @@
   text-shadow: 0 3px 0 #143606;
 }
 
-/* 3D Candy-Jelly Glossy Game Buttons */
-.candy-btn-green {
-  background: linear-gradient(180deg, #74f235 0%, #2fc40c 52%, #199403 100%);
-  border: 3px solid #ffe875;
-  box-shadow:
-    0 6px 0 #136802,
-    0 10px 18px rgba(74, 34, 4, 0.35),
-    inset 0 3px 2px rgba(255, 255, 255, 0.68);
-}
-.candy-btn-green:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow:
-    0 2px 0 #136802,
-    0 4px 8px rgba(74, 34, 4, 0.3),
-    inset 0 2px 2px rgba(255, 255, 255, 0.55);
-}
-
-.candy-btn-blue {
-  background: linear-gradient(180deg, #57c2ff 0%, #2383f5 52%, #1256c4 100%);
-  border: 3px solid #ffe875;
-  box-shadow:
-    0 5px 0 #0a368a,
-    0 8px 14px rgba(74, 34, 4, 0.32),
-    inset 0 3px 2px rgba(255, 255, 255, 0.62);
-}
-.candy-btn-blue:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 2px 0 #0a368a,
-    0 4px 8px rgba(74, 34, 4, 0.28),
-    inset 0 2px 2px rgba(255, 255, 255, 0.5);
+/* 3D Satin-Gold 9-Slice Candy Game Buttons (Static Transparent PNGs in /assets/ui/) */
+.candy-btn-green,
+.candy-btn-blue,
+.candy-btn-teal,
+.candy-btn-amber,
+.candy-btn-gold,
+.candy-btn-purple,
+.candy-btn-green-pill,
+.candy-btn-blue-pill,
+.candy-btn-purple-pill,
+.candy-pill-cream {
+  border-style: solid;
+  border-color: transparent;
+  border-width: 4px;
+  background-clip: padding-box;
+  border-image-repeat: stretch;
+  box-shadow: none;
+  backface-visibility: hidden;
 }
 
-.candy-btn-teal {
-  background: linear-gradient(180deg, #3ee8cb 0%, #15b89a 52%, #0a856f 100%);
-  border: 3px solid #ffe875;
-  box-shadow:
-    0 5px 0 #05594a,
-    0 8px 14px rgba(74, 34, 4, 0.32),
-    inset 0 3px 2px rgba(255, 255, 255, 0.62);
-}
-.candy-btn-teal:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 2px 0 #05594a,
-    0 4px 8px rgba(74, 34, 4, 0.28),
-    inset 0 2px 2px rgba(255, 255, 255, 0.5);
-}
-
-.candy-btn-amber {
-  background: linear-gradient(180deg, #ffb947 0%, #f57c14 54%, #c95104 100%);
-  border: 3px solid #fff2b2;
-  box-shadow:
-    0 5px 0 #8a3200,
-    0 8px 14px rgba(74, 34, 4, 0.32),
-    inset 0 3px 2px rgba(255, 255, 255, 0.65);
-}
-.candy-btn-amber:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 2px 0 #8a3200,
-    0 4px 8px rgba(74, 34, 4, 0.28),
-    inset 0 2px 2px rgba(255, 255, 255, 0.5);
-}
-
-.candy-btn-gold {
-  background: linear-gradient(180deg, #ffe566 0%, #f7aa16 55%, #d67604 100%);
-  border: 3px solid #fff6c9;
-  box-shadow:
-    0 5px 0 #944e00,
-    0 8px 14px rgba(74, 34, 4, 0.32),
-    inset 0 3px 2px rgba(255, 255, 255, 0.72);
-}
-.candy-btn-gold:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 2px 0 #944e00,
-    0 4px 8px rgba(74, 34, 4, 0.28),
-    inset 0 2px 2px rgba(255, 255, 255, 0.55);
-}
-
+.candy-btn-green,
+.candy-btn-blue,
+.candy-btn-teal,
+.candy-btn-amber,
+.candy-btn-gold,
 .candy-btn-purple {
-  background: linear-gradient(180deg, #aa5eff 0%, #7126e8 54%, #4910aa 100%);
-  border: 3px solid #ffe875;
-  box-shadow:
-    0 5px 0 #2e0870,
-    0 8px 14px rgba(45, 12, 88, 0.38),
-    inset 0 3px 2px rgba(255, 255, 255, 0.58);
+  border-radius: 14px;
+  border-image-slice: 70 70 70 70 fill;
+  border-image-width: 17px;
+  filter: drop-shadow(0 4px 5px rgba(32, 10, 52, 0.36));
 }
-.candy-btn-purple:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow:
-    0 2px 0 #2e0870,
-    0 4px 8px rgba(45, 12, 88, 0.3),
-    inset 0 2px 2px rgba(255, 255, 255, 0.48);
+
+/* Interior color-matched safety fill under the 9-slice PNG seals any subpixel seam at fractional DPR/zoom */
+.candy-btn-green {
+  background-image: linear-gradient(180deg, #42dc16 0%, #19ad0c 100%);
+  border-image-source: url('/assets/ui/btn-green.png');
+}
+.candy-btn-blue {
+  background-image: linear-gradient(180deg, #5268f4 0%, #3745d8 100%);
+  border-image-source: url('/assets/ui/btn-blue.png');
+}
+.candy-btn-teal {
+  background-image: linear-gradient(180deg, #2ee5c5 0%, #15b6a0 100%);
+  border-image-source: url('/assets/ui/btn-teal.png');
+}
+.candy-btn-amber,
+.candy-btn-gold {
+  background-image: linear-gradient(180deg, #ff9c24 0%, #e46e09 100%);
+  border-image-source: url('/assets/ui/btn-amber.png');
+}
+.candy-btn-purple {
+  background-image: linear-gradient(180deg, #9f3cd8 0%, #7d22bb 100%);
+  border-image-source: url('/assets/ui/btn-purple.png');
+}
+
+/* Dedicated Wide 9-Slice Pill Capsules (Primary CTA, Level Header, Resource Bars) */
+.candy-btn-green-pill {
+  border-radius: 30px;
+  background-image: linear-gradient(180deg, #4be318 0%, #18ab0c 100%);
+  border-image-source: url('/assets/ui/btn-green-wide.png');
+  border-image-slice: 52 84 52 84 fill;
+  border-image-width: 24px 36px;
+  filter: drop-shadow(0 6px 10px rgba(24, 6, 46, 0.45));
+}
+
+.candy-btn-blue-pill {
+  border-radius: 30px;
+  background-image: linear-gradient(180deg, #4488f7 0%, #245ae2 100%);
+  border-image-source: url('/assets/ui/btn-blue-wide.png');
+  border-image-slice: 52 84 52 84 fill;
+  border-image-width: 22px 34px;
+  filter: drop-shadow(0 5px 8px rgba(24, 6, 46, 0.42));
+}
+
+.candy-btn-purple-pill {
+  border-radius: 26px;
+  background-image: linear-gradient(180deg, #7450ec 0%, #5535d1 100%);
+  border-image-source: url('/assets/ui/btn-purple-wide.png');
+  border-image-slice: 62 104 62 104 fill;
+  border-image-width: 16px 26px;
+  filter: drop-shadow(0 4px 8px rgba(24, 6, 46, 0.42));
+}
+
+.candy-pill-cream {
+  border-width: 3px;
+  border-radius: 18px;
+  background-image: linear-gradient(180deg, #fff9ec 0%, #f3e4c6 100%);
+  border-image-source: url('/assets/ui/pill-cream.png');
+  border-image-slice: 40 64 40 64 fill;
+  border-image-width: 13px 20px;
+  filter: drop-shadow(0 3px 4px rgba(28, 10, 44, 0.34));
+}
+
+/* Strictly integer translateY (zero fractional scale) prevents Skia 9-slice tile seams on click */
+.candy-btn-green:active:not(:disabled),
+.candy-btn-blue:active:not(:disabled),
+.candy-btn-teal:active:not(:disabled),
+.candy-btn-amber:active:not(:disabled),
+.candy-btn-gold:active:not(:disabled),
+.candy-btn-purple:active:not(:disabled),
+.candy-btn-green-pill:active:not(:disabled),
+.candy-btn-blue-pill:active:not(:disabled),
+.candy-btn-purple-pill:active:not(:disabled) {
+  transform: translateY(2px);
+  filter: drop-shadow(0 2px 3px rgba(24, 6, 46, 0.34)) brightness(0.95);
 }
 
 .candy-btn-green:disabled,
@@ -150,24 +160,70 @@
 .candy-btn-teal:disabled,
 .candy-btn-amber:disabled,
 .candy-btn-gold:disabled,
-.candy-btn-purple:disabled {
-  background: linear-gradient(180deg, #e5ddd0 0%, #c4b8a6 100%);
-  border-color: #9e8f7a;
-  box-shadow:
-    0 4px 0 #7a6b57,
-    inset 0 2px 2px rgba(255, 255, 255, 0.55);
-  color: #f9f6f0;
-  opacity: 0.94;
+.candy-btn-purple:disabled,
+.candy-btn-green-pill:disabled,
+.candy-btn-blue-pill:disabled,
+.candy-btn-purple-pill:disabled {
+  background-image: linear-gradient(180deg, #c2beb8 0%, #9b9690 100%);
+  border-image-source: url('/assets/ui/btn-disabled.png');
+  border-image-slice: 70 70 70 70 fill;
+  border-image-width: 17px;
+  filter: drop-shadow(0 3px 3px rgba(24, 6, 46, 0.25));
+  color: #f4f1ea;
+  opacity: 0.96;
 }
 
-/* Warm Golden-Amber Sunlit 3D Panel Frame */
+/* 3D Satin-Gold 9-Slice Panels & Cards (Static Transparent PNGs in /assets/ui/) */
+.candy-panel-frame,
+.candy-card-cream,
+.candy-tile-locked,
+.candy-panel-purple {
+  border-style: solid;
+  border-color: transparent;
+  background-clip: padding-box;
+  border-image-repeat: stretch;
+  box-shadow: none;
+  backface-visibility: hidden;
+}
+
 .candy-panel-frame {
-  background: linear-gradient(180deg, #ffb438 0%, #e0760b 100%);
-  border: 3.5px solid #fff1ad;
-  box-shadow:
-    0 8px 0 #8c3d03,
-    0 18px 36px rgba(66, 28, 3, 0.45),
-    inset 0 2px 2px rgba(255, 255, 255, 0.55);
+  border-width: 6px;
+  border-radius: 26px;
+  background-image: linear-gradient(180deg, #f3a11e 0%, #d46b0c 100%);
+  border-image-source: url('/assets/ui/panel-gold-frame.png');
+  border-image-slice: 108 108 108 108 fill;
+  border-image-width: 28px;
+  filter: drop-shadow(0 12px 22px rgba(34, 12, 4, 0.52));
+}
+
+.candy-card-cream {
+  border-width: 4px;
+  border-radius: 16px;
+  background-image: linear-gradient(180deg, #fbf4e4 0%, #f6e7cc 100%);
+  border-image-source: url('/assets/ui/panel-cream-card.png');
+  border-image-slice: 90 90 90 90 fill;
+  border-image-width: 16px;
+  filter: drop-shadow(0 3px 5px rgba(72, 34, 6, 0.22));
+}
+
+.candy-tile-locked {
+  border-width: 4px;
+  border-radius: 16px;
+  background-image: linear-gradient(180deg, #c7b8a1 0%, #a99982 100%);
+  border-image-source: url('/assets/ui/panel-locked-tile.png');
+  border-image-slice: 98 98 98 98 fill;
+  border-image-width: 16px;
+  filter: drop-shadow(0 2px 4px rgba(56, 30, 8, 0.18));
+}
+
+.candy-panel-purple {
+  border-width: 5px;
+  border-radius: 22px;
+  background-image: linear-gradient(180deg, #6b3fe8 0%, #4d22c8 100%);
+  border-image-source: url('/assets/ui/panel-purple-frame.png');
+  border-image-slice: 66 84 66 84 fill;
+  border-image-width: 20px 24px;
+  filter: drop-shadow(0 6px 14px rgba(26, 6, 56, 0.45));
 }
 
 @keyframes gentle-float {
@@ -397,6 +453,41 @@
   animation: tail-wag 1.4s ease-in-out infinite;
 }
 
+@keyframes potion-shimmer {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 0.98;
+    transform: scale(1.16);
+  }
+}
+
+@keyframes potion-bubble-drift {
+  0% {
+    transform: translateY(3px);
+    opacity: 0.25;
+  }
+  45% {
+    opacity: 0.82;
+  }
+  100% {
+    transform: translateY(-4.5px);
+    opacity: 0.15;
+  }
+}
+
+.animate-potion-shimmer {
+  animation: potion-shimmer 2.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-potion-bubble {
+  animation: potion-bubble-drift 3.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-gentle-float,
   .animate-cork-pop,
@@ -410,7 +501,9 @@
   .animate-mascot-clap-bounce,
   .animate-paw-clap-left,
   .animate-paw-clap-right,
-  .animate-tail-wag {
+  .animate-tail-wag,
+  .animate-potion-shimmer,
+  .animate-potion-bubble {
     animation: none;
   }
 }

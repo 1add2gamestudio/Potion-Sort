@@ -1,59 +1,14 @@
-import type { PourSoundId } from './types';
-
-export interface PourSoundMeta {
-  id: PourSoundId;
-  title: string;
-  tagline: string;
-  badge: string;
-  file: string;
-}
-
-export const POUR_SOUND_OPTIONS: PourSoundMeta[] = [
-  {
-    id: 'pour_glug_silk',
-    title: 'Silk Glug',
-    tagline: 'Soft splash roll-off and unhurried glass pour',
-    badge: 'Soft Flow',
-    file: '/assets/sounds/pour_glug_silk.mp3',
-  },
-  {
-    id: 'pour_glug_velvet',
-    title: 'Velvet ASMR',
-    tagline: 'Warm deep mid-body with slow meditative glug',
-    badge: 'Deep Warm',
-    file: '/assets/sounds/pour_glug_velvet.mp3',
-  },
-  {
-    id: 'pour_glug_oak',
-    title: 'Oak Hollow',
-    tagline: 'Tamed highs with gentle wooden alcove resonance',
-    badge: 'Wood Alcove',
-    file: '/assets/sounds/pour_glug_oak.mp3',
-  },
-  {
-    id: 'pour_glug_dew',
-    title: 'Quiet Dew',
-    tagline: 'Whisper-soft peaks for calm late-night play',
-    badge: 'Late-Night',
-    file: '/assets/sounds/pour_glug_dew.mp3',
-  },
-  {
-    id: 'pour_glug',
-    title: 'Bottle Glug',
-    tagline: 'Unfiltered original pour for direct comparison',
-    badge: 'Baseline',
-    file: '/assets/sounds/pour_glug.mp3',
-  },
-];
-
-export function getPourSoundMeta(id: PourSoundId): PourSoundMeta {
-  return POUR_SOUND_OPTIONS.find((item) => item.id === id) ?? POUR_SOUND_OPTIONS[0];
-}
+export const POUR_SOUND_FILE = '/assets/sounds/asmr_bottle_glug.mp3';
 
 let audioCtx: AudioContext | null = null;
-const bufferCache = new Map<PourSoundId, AudioBuffer>();
-const pendingBuffers = new Map<PourSoundId, Promise<AudioBuffer | null>>();
-let activePreviewCleanup: (() => void) | null = null;
+let cachedPourBuffer: AudioBuffer | null = null;
+let pendingPourBuffer: Promise<AudioBuffer | null> | null = null;
+let activePourCleanup: (() => void) | null = null;
+
+export function stopPourSound(): void {
+  activePourCleanup?.();
+  activePourCleanup = null;
+}
 
 function ensureCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -68,38 +23,33 @@ function ensureCtx(): AudioContext | null {
   return audioCtx;
 }
 
-async function loadPourBuffer(ctx: AudioContext, id: PourSoundId): Promise<AudioBuffer | null> {
-  const cached = bufferCache.get(id);
-  if (cached) return cached;
-  const inflight = pendingBuffers.get(id);
-  if (inflight) return inflight;
+async function loadPourBuffer(ctx: AudioContext): Promise<AudioBuffer | null> {
+  if (cachedPourBuffer) return cachedPourBuffer;
+  if (pendingPourBuffer) return pendingPourBuffer;
 
-  const meta = getPourSoundMeta(id);
   const promise = (async () => {
     try {
-      const res = await fetch(meta.file);
+      const res = await fetch(POUR_SOUND_FILE);
       if (!res.ok) return null;
       const arr = await res.arrayBuffer();
       const decoded = await ctx.decodeAudioData(arr);
-      bufferCache.set(id, decoded);
+      cachedPourBuffer = decoded;
       return decoded;
     } catch {
       return null;
     } finally {
-      pendingBuffers.delete(id);
+      pendingPourBuffer = null;
     }
   })();
 
-  pendingBuffers.set(id, promise);
+  pendingPourBuffer = promise;
   return promise;
 }
 
 export function preloadPourSounds(): void {
   const ctx = ensureCtx();
   if (!ctx) return;
-  for (const opt of POUR_SOUND_OPTIONS) {
-    void loadPourBuffer(ctx, opt.id);
-  }
+  void loadPourBuffer(ctx);
 }
 
 export function triggerHaptic(enabled: boolean, durationMs = 10): void {
@@ -115,7 +65,7 @@ export function playPickupClink(enabled: boolean): void {
   if (!enabled) return;
   const ctx = ensureCtx();
   if (!ctx) return;
-  // Warm up pour audio buffers on first bottle interaction
+  // Warm up pour audio buffer on first bottle interaction
   preloadPourSounds();
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -151,7 +101,13 @@ export function playErrorTap(enabled: boolean): void {
   osc.stop(now + 0.13);
 }
 
-function playFallbackElement(file: string, volume: number, playbackRate: number, maxMs?: number, onDone?: () => void): () => void {
+function playFallbackElement(
+  file: string,
+  volume: number,
+  playbackRate: number,
+  maxMs?: number,
+  onDone?: () => void
+): () => void {
   if (typeof Audio === 'undefined') {
     onDone?.();
     return () => {};
@@ -180,106 +136,81 @@ function playFallbackElement(file: string, volume: number, playbackRate: number,
   return cleanup;
 }
 
-export function playPourSound(
-  enabled: boolean,
-  layerCount: number,
-  pourSound: PourSoundId = 'pour_glug_silk'
-): void {
+export function playPourSound(enabled: boolean, layerCount: number): void {
+  stopPourSound();
   if (!enabled) return;
+
   const ctx = ensureCtx();
   const drops = Math.max(1, Math.min(4, layerCount));
-  const rate = drops === 1 ? 0.98 : drops === 2 ? 0.9 : 0.84;
-  const playDur = Math.min(1.02, 0.56 + drops * 0.14);
+  // Strictly synced to active liquid stream window inside POUR_DURATION_MS (680ms):
+  // starts at 0.14s when stream enters the bottle and finishes cleanly at ~0.58s
+  // before the bottle lands back on the shelf.
+  const rate = drops === 1 ? 1.02 : drops === 2 ? 0.99 : 0.96;
+  const startDelaySec = 0.14;
+  const streamDurSec = 0.44;
 
   if (!ctx) {
-    const meta = getPourSoundMeta(pourSound);
-    setTimeout(() => {
-      playFallbackElement(meta.file, 0.55, rate, Math.round(playDur * 1000));
-    }, 60);
+    let innerStop: (() => void) | null = null;
+    const timer = setTimeout(() => {
+      innerStop = playFallbackElement(POUR_SOUND_FILE, 0.68, rate, Math.round(streamDurSec * 1000));
+    }, Math.round(startDelaySec * 1000));
+    activePourCleanup = () => {
+      clearTimeout(timer);
+      innerStop?.();
+    };
     return;
   }
 
-  const cached = bufferCache.get(pourSound);
-  if (cached) {
-    const startAt = ctx.currentTime + 0.065;
+  if (cachedPourBuffer) {
+    const playDur = Math.min(cachedPourBuffer.duration / rate, streamDurSec);
+    const startAt = ctx.currentTime + startDelaySec;
     const src = ctx.createBufferSource();
     const gain = ctx.createGain();
-    src.buffer = cached;
+    src.buffer = cachedPourBuffer;
     src.playbackRate.setValueAtTime(rate, startAt);
 
     gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.linearRampToValueAtTime(0.58, startAt + 0.045);
-    gain.gain.setValueAtTime(0.58, startAt + Math.max(0.08, playDur - 0.18));
+    gain.gain.linearRampToValueAtTime(0.7, startAt + 0.035);
+    gain.gain.setValueAtTime(0.7, startAt + Math.max(0.08, playDur - 0.11));
     gain.gain.exponentialRampToValueAtTime(0.0001, startAt + playDur);
 
     src.connect(gain);
     gain.connect(ctx.destination);
+
+    let stopped = false;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      try {
+        const now = ctx.currentTime;
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+        src.stop(now + 0.035);
+      } catch {
+        // already stopped
+      }
+    };
+    src.onended = () => {
+      stopped = true;
+      if (activePourCleanup === stop) activePourCleanup = null;
+    };
+    activePourCleanup = stop;
     src.start(startAt);
-    src.stop(startAt + playDur + 0.03);
+    src.stop(startAt + playDur + 0.02);
     return;
   }
 
   // First pour before buffer finishes decoding: decode in background and use HTMLAudio immediately
-  void loadPourBuffer(ctx, pourSound);
-  const meta = getPourSoundMeta(pourSound);
-  setTimeout(() => {
-    playFallbackElement(meta.file, 0.55, rate, Math.round(playDur * 1000));
-  }, 60);
-}
-
-export function previewPourSound(pourSound: PourSoundId, onEnded?: () => void): void {
-  activePreviewCleanup?.();
-  activePreviewCleanup = null;
-
-  const ctx = ensureCtx();
-  const meta = getPourSoundMeta(pourSound);
-
-  if (!ctx) {
-    activePreviewCleanup = playFallbackElement(meta.file, 0.72, 1.0, undefined, onEnded);
-    return;
-  }
-
-  const cached = bufferCache.get(pourSound);
-  if (cached) {
-    const now = ctx.currentTime;
-    const src = ctx.createBufferSource();
-    const gain = ctx.createGain();
-    src.buffer = cached;
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.72, now + 0.04);
-    gain.gain.setValueAtTime(0.72, now + Math.max(0.12, cached.duration - 0.16));
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + cached.duration);
-    src.connect(gain);
-    gain.connect(ctx.destination);
-
-    let done = false;
-    const stop = () => {
-      if (done) return;
-      done = true;
-      try {
-        src.stop();
-      } catch {
-        // already stopped
-      }
-      onEnded?.();
-    };
-    src.onended = () => {
-      if (activePreviewCleanup === stop) activePreviewCleanup = null;
-      if (!done) {
-        done = true;
-        onEnded?.();
-      }
-    };
-    activePreviewCleanup = stop;
-    src.start(now);
-    return;
-  }
-
-  void loadPourBuffer(ctx, pourSound);
-  activePreviewCleanup = playFallbackElement(meta.file, 0.72, 1.0, undefined, () => {
-    activePreviewCleanup = null;
-    onEnded?.();
-  });
+  void loadPourBuffer(ctx);
+  let innerStop: (() => void) | null = null;
+  const timer = setTimeout(() => {
+    innerStop = playFallbackElement(POUR_SOUND_FILE, 0.68, rate, Math.round(streamDurSec * 1000));
+  }, Math.round(startDelaySec * 1000));
+  activePourCleanup = () => {
+    clearTimeout(timer);
+    innerStop?.();
+  };
 }
 
 export function playCorkPop(enabled: boolean): void {
@@ -299,6 +230,29 @@ export function playCorkPop(enabled: boolean): void {
   gain.connect(ctx.destination);
   osc.start(now);
   osc.stop(now + 0.17);
+}
+
+export function playSealRiseChime(enabled: boolean): void {
+  if (!enabled) return;
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  // Airy ascending crystalline shimmer synced with the double-helix ribbons rising (0.0s -> 0.55s)
+  [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+    const t = now + idx * 0.115;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.02, t + 0.24);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(0.028, t + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.36);
+  });
 }
 
 export function playBottleComplete(enabled: boolean): void {

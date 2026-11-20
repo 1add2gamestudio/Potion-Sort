@@ -1,4 +1,4 @@
-import type { BottleStyleId, IngredientId, PlayerProfile, PourSoundId } from './types';
+import type { BottleStyleId, IngredientId, PlayerProfile } from './types';
 
 const STORAGE_KEY = 'solstice_sort_profile_v1';
 export const LIFE_REGEN_MS = 25 * 60 * 1000; // 25 minutes per life
@@ -28,7 +28,6 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   hapticsEnabled: true,
   colorSymbolsEnabled: false,
   bottleStyle: 'starlight',
-  pourSound: 'pour_glug_silk',
   completedTrials: [],
 };
 
@@ -68,13 +67,6 @@ export function loadProfile(): PlayerProfile {
       'crystal_prism',
       'botanical_brass',
     ];
-    const validPourSounds: PourSoundId[] = [
-      'pour_glug_silk',
-      'pour_glug_velvet',
-      'pour_glug_oak',
-      'pour_glug_dew',
-      'pour_glug',
-    ];
     const merged: PlayerProfile = {
       ...DEFAULT_PROFILE,
       ...parsed,
@@ -82,10 +74,6 @@ export function loadProfile(): PlayerProfile {
         parsed.bottleStyle && validStyles.includes(parsed.bottleStyle)
           ? parsed.bottleStyle
           : DEFAULT_PROFILE.bottleStyle,
-      pourSound:
-        parsed.pourSound && validPourSounds.includes(parsed.pourSound)
-          ? parsed.pourSound
-          : DEFAULT_PROFILE.pourSound,
       boosters: { ...DEFAULT_PROFILE.boosters, ...(parsed.boosters ?? {}) },
       ingredients: { ...DEFAULT_PROFILE.ingredients, ...(parsed.ingredients ?? {}) },
       claimedEventMilestones: Array.isArray(parsed.claimedEventMilestones)

@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   Eye,
-  Flame,
   Play,
-  RotateCcw,
-  ShieldCheck,
   Sparkles,
   Tv,
-  Volume2,
-  VolumeX,
-  X,
 } from 'lucide-react';
-import { getPourSoundMeta, POUR_SOUND_OPTIONS, previewPourSound } from '../game/sound';
 import { getNextLifeCountdownMs } from '../game/storage';
 import type {
   Bottle,
@@ -19,11 +12,18 @@ import type {
   IngredientId,
   PlayModal,
   PlayerProfile,
-  PourSoundId,
 } from '../game/types';
 import { BOTTLE_STYLE_LIST } from './bottleDesigns';
 import { CrystalBottle } from './CrystalBottle';
-import { Heart3DIcon } from './GameIcons3D';
+import {
+  Close3DIcon,
+  Heart3DIcon,
+  Restart3DIcon,
+  ShieldCheck3DIcon,
+  SoundOff3DIcon,
+  SoundOn3DIcon,
+  StreakFlame3DIcon,
+} from './GameIcons3D';
 
 export interface VictorySnapshot {
   levelTitle: string;
@@ -67,8 +67,6 @@ interface GameModalsProps {
   onToggleSetting: (key: 'soundEnabled' | 'hapticsEnabled' | 'colorSymbolsEnabled') => void;
   onSelectBottleStyle: (style: BottleStyleId) => void;
   onOpenBottleCompare: () => void;
-  onSelectPourSound: (soundId: PourSoundId) => void;
-  onOpenPourSoundCompare: () => void;
   onPurchaseRemoveAds: () => void;
   onResetSave: () => void;
 }
@@ -108,13 +106,10 @@ export const GameModals: React.FC<GameModalsProps> = ({
   onToggleSetting,
   onSelectBottleStyle,
   onOpenBottleCompare,
-  onSelectPourSound,
-  onOpenPourSoundCompare,
   onPurchaseRemoveAds,
   onResetSave,
 }) => {
   const [adSecondsLeft, setAdSecondsLeft] = useState(2);
-  const [previewingSoundId, setPreviewingSoundId] = useState<PourSoundId | null>(null);
 
   useEffect(() => {
     if (modal !== 'AD_SIMULATION') return;
@@ -139,7 +134,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
       aria-modal="true"
       className="absolute inset-0 z-40 flex items-center justify-center bg-[#3E1B04]/55 p-4 font-game-body"
     >
-      <div className="candy-panel-frame w-full max-w-[335px] rounded-[28px] p-4 text-[#4A2305]">
+      <div className="candy-panel-frame w-full max-w-[335px] p-4 text-[#4A2305]">
         {/* PAUSED */}
         {modal === 'PAUSED' && (
           <div className="space-y-3.5">
@@ -154,11 +149,11 @@ export const GameModals: React.FC<GameModalsProps> = ({
               </p>
             </div>
 
-            <div className="rounded-2xl bg-[#FFFDF7] border-2 border-[#FFF1AD] p-3 space-y-2.5">
+            <div className="candy-card-cream p-3 space-y-2.5">
               <button
                 type="button"
                 onClick={onResume}
-                className="candy-btn-green w-full py-3 rounded-2xl text-white font-game-display font-bold text-base game-stroke-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="candy-btn-green-pill w-full py-3 text-white font-game-display font-bold text-base game-stroke-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current" />
                 <span>Resume</span>
@@ -167,9 +162,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
               <button
                 type="button"
                 onClick={onRestartConfirm}
-                className="candy-btn-amber w-full py-2.5 rounded-2xl text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
+                className="candy-btn-amber w-full py-2.5 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
               >
-                <RotateCcw className="w-4 h-4" />
+                <Restart3DIcon className="w-4 h-4" />
                 <span>Restart Level (-1 Life)</span>
               </button>
 
@@ -177,19 +172,19 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 <button
                   type="button"
                   onClick={() => onToggleSetting('soundEnabled')}
-                  className="py-2 rounded-xl border-2 border-[#EFA929] bg-[#FFF8E4] text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="candy-pill-cream py-2 px-2 text-xs font-black text-[#4A2305] flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {profile.soundEnabled ? (
-                    <Volume2 className="w-3.5 h-3.5 text-[#149A05]" />
+                    <SoundOn3DIcon className="w-4 h-4" />
                   ) : (
-                    <VolumeX className="w-3.5 h-3.5 text-[#C8233C]" />
+                    <SoundOff3DIcon className="w-4 h-4" />
                   )}
                   <span>{profile.soundEnabled ? 'Sound On' : 'Muted'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onToggleSetting('colorSymbolsEnabled')}
-                  className="py-2 rounded-xl border-2 border-[#EFA929] bg-[#FFF8E4] text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="candy-pill-cream py-2 px-2 text-xs font-black text-[#4A2305] flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5 text-[#134DF0]" />
                   <span>{profile.colorSymbolsEnabled ? 'Symbols On' : 'Symbols Off'}</span>
@@ -234,7 +229,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
               </h2>
             </div>
 
-            <div className="rounded-2xl bg-[#FFFDF7] border-2 border-[#FFF1AD] p-3 space-y-2.5">
+            <div className="candy-card-cream p-3 space-y-2.5">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
                   <div className="text-[10px] font-black text-[#8A5A1A]">TIME</div>
@@ -281,7 +276,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 type="button"
                 data-start="true"
                 onClick={onNextLevel}
-                className="candy-btn-green w-full py-3 rounded-2xl text-white font-game-display font-bold text-lg game-stroke-md cursor-pointer"
+                className="candy-btn-green-pill w-full py-3 text-white font-game-display font-bold text-lg game-stroke-md cursor-pointer"
               >
                 {victorySnapshot.isTrial ? 'Back to Festival' : 'Next Level'}
               </button>
@@ -295,7 +290,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                       label: `Watch Video for +${victorySnapshot.coinsEarned} Bonus Coins`,
                     })
                   }
-                  className="candy-btn-blue w-full py-2.5 rounded-2xl text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="candy-btn-blue-pill w-full py-2.5 text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Tv className="w-4 h-4" />
                   <span>2x Coins · Rewarded Ad</span>
@@ -343,7 +338,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                     label: 'Watch Video for +1 Free Crystal Flask',
                   })
                 }
-                className="candy-btn-green w-full py-3 rounded-2xl text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="candy-btn-green-pill w-full py-3 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Tv className="w-4 h-4" />
                 <span>Continue (+1 Flask · Rewarded Ad)</span>
@@ -353,7 +348,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 type="button"
                 data-start="true"
                 onClick={onRetryAfterDefeat}
-                className="candy-btn-blue w-full py-3 rounded-2xl text-white font-black text-sm game-stroke-sm cursor-pointer"
+                className="candy-btn-blue-pill w-full py-3 text-white font-black text-sm game-stroke-sm cursor-pointer"
               >
                 Try Again (-1 Life)
               </button>
@@ -372,7 +367,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         {/* NO LIVES */}
         {modal === 'NO_LIVES' && (
           <div className="space-y-3.5 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FFFDF7] border-2 border-[#FFF1AD] flex items-center justify-center shadow">
+            <div className="candy-card-cream w-16 h-16 mx-auto flex items-center justify-center">
               <Heart3DIcon className="w-10 h-10" />
             </div>
             <div>
@@ -395,7 +390,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                     label: 'Watch Video for +1 Instant Life',
                   })
                 }
-                className="candy-btn-green w-full py-3 rounded-2xl text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="candy-btn-green-pill w-full py-3 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Tv className="w-4 h-4" />
                 <span>Free +1 Life · Rewarded Ad</span>
@@ -405,7 +400,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 type="button"
                 disabled={profile.coins < 150 || profile.lives >= profile.maxLives}
                 onClick={onRefillLivesWithCoins}
-                className="candy-btn-blue w-full py-3 rounded-2xl text-white font-black text-xs game-stroke-xs cursor-pointer disabled:cursor-not-allowed"
+                className="candy-btn-blue-pill w-full py-3 text-white font-black text-xs game-stroke-xs cursor-pointer disabled:cursor-not-allowed"
               >
                 Refill 5/5 Lives (150 Coins)
               </button>
@@ -432,13 +427,13 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 type="button"
                 onClick={onCloseModal}
                 aria-label="Close settings"
-                className="candy-btn-blue w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer"
+                className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer"
               >
-                <X className="w-4 h-4 text-white stroke-[3]" />
+                <Close3DIcon className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="rounded-2xl bg-[#FFFDF7] border-2 border-[#FFF1AD] p-3 space-y-2 text-xs">
+            <div className="candy-card-cream p-3 space-y-2 text-xs">
               {[
                 { key: 'soundEnabled' as const, label: 'Sound Effects' },
                 { key: 'hapticsEnabled' as const, label: 'Vibration Haptics' },
@@ -448,7 +443,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                   key={item.key}
                   type="button"
                   onClick={() => onToggleSetting(item.key)}
-                  className="w-full p-2.5 rounded-xl border-2 border-[#EFA929] bg-[#FFF8E4] flex items-center justify-between font-black cursor-pointer"
+                  className="candy-pill-cream w-full px-3 py-2 flex items-center justify-between font-black text-[#4A2305] cursor-pointer"
                 >
                   <span>{item.label}</span>
                   <span
@@ -464,18 +459,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
               ))}
               <button
                 type="button"
-                onClick={onOpenPourSoundCompare}
-                className="w-full p-2.5 rounded-xl border-2 border-[#EFA929] bg-[#FFF8E4] flex items-center justify-between font-black cursor-pointer"
-              >
-                <span>Liquid Pour Sound</span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#134DF0] text-[#FFF9D6]">
-                  {getPourSoundMeta(profile.pourSound).title} · 5
-                </span>
-              </button>
-              <button
-                type="button"
                 onClick={onOpenBottleCompare}
-                className="w-full p-2.5 rounded-xl border-2 border-[#EFA929] bg-[#FFF8E4] flex items-center justify-between font-black cursor-pointer"
+                className="candy-pill-cream w-full px-3 py-2 flex items-center justify-between font-black text-[#4A2305] cursor-pointer"
               >
                 <span>Crystal Flask Design</span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#7126E8] text-[#FFE875]">
@@ -489,9 +474,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 type="button"
                 disabled={profile.adsRemoved}
                 onClick={onPurchaseRemoveAds}
-                className="candy-btn-gold w-full py-3 rounded-2xl text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
+                className="candy-btn-gold w-full py-3 text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck3DIcon className="w-5 h-5" />
                 <span>
                   {profile.adsRemoved
                     ? 'All Ads Removed (Owned)'
@@ -513,7 +498,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         {/* SIMULATED AD SDK PLACEHOLDER */}
         {modal === 'AD_SIMULATION' && adRequest && (
           <div className="space-y-3.5 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#FFFDF7] border-2 border-[#FFF1AD] flex items-center justify-center shadow">
+            <div className="candy-card-cream w-16 h-16 mx-auto flex items-center justify-center">
               <Sparkles className="w-7 h-7 text-[#EA7607]" />
             </div>
             <div>
@@ -534,9 +519,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
               type="button"
               disabled={adSecondsLeft > 0}
               onClick={onCompleteAd}
-              className="candy-btn-green w-full py-3 rounded-2xl text-white font-black text-xs game-stroke-xs cursor-pointer disabled:cursor-wait flex items-center justify-center gap-1.5"
+              className="candy-btn-green-pill w-full py-3 text-white font-black text-xs game-stroke-xs cursor-pointer disabled:cursor-wait flex items-center justify-center gap-1.5"
             >
-              <Flame className="w-4 h-4" />
+              <StreakFlame3DIcon className="w-4 h-4" />
               <span>{adSecondsLeft > 0 ? 'Please Wait...' : 'Claim Reward'}</span>
             </button>
           </div>
@@ -557,9 +542,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 type="button"
                 onClick={onCloseModal}
                 aria-label="Close bottle comparison"
-                className="candy-btn-blue w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer shrink-0"
+                className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer shrink-0"
               >
-                <X className="w-4 h-4 text-white stroke-[3]" />
+                <Close3DIcon className="w-4 h-4" />
               </button>
             </div>
 
@@ -574,10 +559,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
                       onSelectBottleStyle(design.id);
                       onCloseModal();
                     }}
-                    className={`relative rounded-2xl p-2 flex flex-col items-center text-center cursor-pointer transition-transform active:scale-95 ${
-                      isSelected
-                        ? 'bg-[#FFF5D1] border-[3px] border-[#29B80A] shadow-[0_4px_0_#197A04]'
-                        : 'bg-[#FFFDF7] border-2 border-[#EFA929] shadow-[0_3px_0_#B87412]'
+                    className={`relative p-2.5 flex flex-col items-center text-center cursor-pointer active:translate-y-0.5 ${
+                      isSelected ? 'candy-card-cream ring-2 ring-[#36DC15]' : 'candy-card-cream'
                     }`}
                   >
                     {isSelected && (
@@ -606,106 +589,6 @@ export const GameModals: React.FC<GameModalsProps> = ({
                       {design.tagline}
                     </div>
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* POUR SOUND 5-OPTION AUDITION & PICKER */}
-        {modal === 'POUR_SOUND_COMPARE' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-game-display text-lg font-bold text-[#FFF9D6] game-stroke-sm leading-tight">
-                  Soothing Pour Sounds
-                </h2>
-                <p className="text-[11px] font-bold text-[#FFF5DB]">
-                  4 calmed mixes of Bottle Glug + original baseline
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onCloseModal}
-                aria-label="Close pour sound picker"
-                className="candy-btn-blue w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer shrink-0"
-              >
-                <X className="w-4 h-4 text-white stroke-[3]" />
-              </button>
-            </div>
-
-            <div className="space-y-1.5 max-h-[62dvh] overflow-y-auto pr-0.5">
-              {POUR_SOUND_OPTIONS.map((opt, idx) => {
-                const isSelected = profile.pourSound === opt.id;
-                const isPlaying = previewingSoundId === opt.id;
-                const isBaseline = opt.id === 'pour_glug';
-                return (
-                  <div
-                    key={opt.id}
-                    className={`rounded-2xl p-2 flex items-center gap-2.5 transition-colors ${
-                      isSelected
-                        ? 'bg-[#FFF5D1] border-[2.5px] border-[#29B80A] shadow-[0_3px_0_#197A04]'
-                        : isBaseline
-                        ? 'bg-[#F8F1E2] border-2 border-[#D6B06D] shadow-[0_2px_0_#A68142]'
-                        : 'bg-[#FFFDF7] border-2 border-[#EFA929] shadow-[0_2px_0_#B87412]'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewingSoundId(opt.id);
-                        previewPourSound(opt.id, () => {
-                          setPreviewingSoundId((curr) => (curr === opt.id ? null : curr));
-                        });
-                      }}
-                      aria-label={`Preview ${opt.title} pour sound`}
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 cursor-pointer border-2 transition-transform active:scale-95 ${
-                        isPlaying
-                          ? 'bg-[#FF951C] border-[#FFF1AD] text-white'
-                          : 'bg-[#134DF0] border-[#8AB4FF] text-white'
-                      }`}
-                    >
-                      {isPlaying ? (
-                        <Volume2 className="w-5 h-5 animate-pulse" />
-                      ) : (
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
-                      )}
-                    </button>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-[#4E2305] truncate">
-                        <span>
-                          {idx + 1}. {opt.title}
-                        </span>
-                        <span aria-hidden="true" className="text-[#B87412]">·</span>
-                        <span className="text-[10.5px] font-bold text-[#8A4105] truncate">
-                          {opt.badge}
-                        </span>
-                      </div>
-                      <p className="text-[10px] font-bold text-[#7E5218] leading-snug mt-0.5">
-                        {opt.tagline}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSelectPourSound(opt.id);
-                        setPreviewingSoundId(opt.id);
-                        previewPourSound(opt.id, () => {
-                          setPreviewingSoundId((curr) => (curr === opt.id ? null : curr));
-                        });
-                      }}
-                      aria-label={isSelected ? `${opt.title} active` : `Select ${opt.title} pour sound`}
-                      className={`min-h-[36px] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase shrink-0 cursor-pointer transition-transform active:scale-95 ${
-                        isSelected
-                          ? 'bg-[#29B80A] text-white border border-[#197A04]'
-                          : 'bg-[#7126E8] text-[#FFE875] border border-[#411096]'
-                      }`}
-                    >
-                      {isSelected ? 'Active' : 'Use'}
-                    </button>
-                  </div>
                 );
               })}
             </div>

@@ -16,7 +16,7 @@ import {
 import { TitleHomeScreen } from './components/TitleHomeScreen';
 import { addExtraFlaskBooster } from './game/engine';
 import { EVENT_TRIALS, getLevelSpec, getTrialLevelSpec } from './game/levelGenerator';
-import { playBottleComplete, playPickupClink } from './game/sound';
+import { playBottleComplete, playPickupClink, stopPourSound } from './game/sound';
 import {
   DEFAULT_PROFILE,
   EVENT_MILESTONES,
@@ -58,6 +58,19 @@ export default function App() {
   useEffect(() => {
     saveProfile(profile);
   }, [profile]);
+
+  // Immediately stop any active liquid sound when muted or leaving gameplay
+  useEffect(() => {
+    if (!profile.soundEnabled) {
+      stopPourSound();
+    }
+  }, [profile.soundEnabled]);
+
+  useEffect(() => {
+    if (screen !== 'PLAYING') {
+      stopPourSound();
+    }
+  }, [screen]);
 
   // Live life regeneration ticker every second
   useEffect(() => {
@@ -369,7 +382,6 @@ export default function App() {
               setProfile((curr) => ({ ...curr, bottleStyle }));
             }}
             onOpenBottleCompare={() => setModal('BOTTLE_COMPARE')}
-            onOpenPourSoundCompare={() => setModal('POUR_SOUND_COMPARE')}
           />
         )}
 
@@ -477,10 +489,6 @@ export default function App() {
             setProfile((curr) => ({ ...curr, bottleStyle }));
           }}
           onOpenBottleCompare={() => setModal('BOTTLE_COMPARE')}
-          onSelectPourSound={(pourSound) => {
-            setProfile((curr) => ({ ...curr, pourSound }));
-          }}
-          onOpenPourSoundCompare={() => setModal('POUR_SOUND_COMPARE')}
           onPurchaseRemoveAds={() => {
             setProfile((curr) => ({ ...curr, adsRemoved: true }));
             playBottleComplete(profile.soundEnabled);

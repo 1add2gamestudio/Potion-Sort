@@ -115,13 +115,6 @@ export type AppScreen = 'HOME' | 'PLAYING' | 'LEVEL_MAP' | 'ALEMBIC' | 'SHOP' | 
 
 export type BottleStyleId = 'starlight' | 'royal_crown' | 'crystal_prism' | 'botanical_brass';
 
-export type PourSoundId =
-  | 'pour_glug_silk'
-  | 'pour_glug_velvet'
-  | 'pour_glug_oak'
-  | 'pour_glug_dew'
-  | 'pour_glug';
-
 export type PlayModal =
   | 'NONE'
   | 'PAUSED'
@@ -130,8 +123,7 @@ export type PlayModal =
   | 'NO_LIVES'
   | 'SETTINGS'
   | 'AD_SIMULATION'
-  | 'BOTTLE_COMPARE'
-  | 'POUR_SOUND_COMPARE';
+  | 'BOTTLE_COMPARE';
 
 export interface BoostersInventory {
   undo: number;
@@ -162,6 +154,5 @@ export interface PlayerProfile {
   hapticsEnabled: boolean;
   colorSymbolsEnabled: boolean;
   bottleStyle: BottleStyleId;
-  pourSound: PourSoundId;
   completedTrials: string[];
 }

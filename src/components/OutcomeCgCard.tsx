@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Maximize2 } from 'lucide-react';
 import { getOutcomeCg } from '../game/outcomeCg';
 import { useI18n } from '../game/i18n';
@@ -82,7 +83,6 @@ export const OutcomeCgCard: React.FC<OutcomeCgCardProps> = ({
       );
     }
 
-    // Defeat overlays: gentle puff / floating bubbles / rally sparks
     return (
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {tier === 2 &&
@@ -108,6 +108,57 @@ export const OutcomeCgCard: React.FC<OutcomeCgCardProps> = ({
       </div>
     );
   };
+
+  const fullscreenPortal =
+    fullscreen && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setFullscreen(false)}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#210B3D] p-5 font-game-body select-none"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[388px] space-y-3.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={`px-3 py-1 rounded-full border text-xs font-black shadow ${badgePalette}`}
+                >
+                  {badge}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFullscreen(false)}
+                  aria-label={t('closePreview')}
+                  className="candy-btn-blue w-10 h-10 flex items-center justify-center cursor-pointer shrink-0"
+                >
+                  <Close3DIcon className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="relative w-full aspect-[4/3] overflow-hidden rounded-[22px] border-[4px] border-[#FFE875] shadow-[0_14px_34px_rgba(0,0,0,0.55)] bg-[#190630]">
+                <img
+                  src={entry.imageSrc}
+                  alt={title}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover animate-cg-kenburns"
+                />
+                {renderAnimatedOverlay()}
+              </div>
+
+              <div className="candy-panel-purple px-4 py-3 text-center">
+                <h3 className="font-game-display text-xl font-bold text-[#FFE96B] game-stroke-sm">
+                  {title}
+                </h3>
+                <p className="text-xs font-bold text-[#F3E6FF] mt-1 leading-relaxed">{caption}</p>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <>
@@ -165,51 +216,7 @@ export const OutcomeCgCard: React.FC<OutcomeCgCardProps> = ({
         </button>
       </div>
 
-      {/* Fullscreen Immersive CG Viewer */}
-      {fullscreen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setFullscreen(false)}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#180630]/92 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-[390px] space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <span className={`px-3 py-1 rounded-full border text-xs font-black shadow ${badgePalette}`}>
-                {badge}
-              </span>
-              <button
-                type="button"
-                onClick={() => setFullscreen(false)}
-                aria-label={t('closePreview')}
-                className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer"
-              >
-                <Close3DIcon className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="relative w-full aspect-[4/3] overflow-hidden rounded-[22px] border-[4px] border-[#FFE875] shadow-[0_14px_34px_rgba(0,0,0,0.65)]">
-              <img
-                src={entry.imageSrc}
-                alt={title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover animate-cg-kenburns"
-              />
-              {renderAnimatedOverlay()}
-            </div>
-
-            <div className="candy-panel-purple px-4 py-3 text-center">
-              <h3 className="font-game-display text-xl font-bold text-[#FFE96B] game-stroke-sm">
-                {title}
-              </h3>
-              <p className="text-xs font-bold text-[#F3E6FF] mt-1 leading-relaxed">{caption}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {fullscreenPortal}
     </>
   );
 };

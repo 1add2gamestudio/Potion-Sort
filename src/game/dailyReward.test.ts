@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DAILY_CALENDAR_SCHEDULE,
   applyDailyLoginReward,
   computeNextDailyStreak,
+  getCalendarDayIndex,
+  getDailyCalendarReward,
+  getDailyCalendarStates,
   getLocalDateKey,
   isDailyRewardAvailable,
-  rollDailyLoginReward,
 } from './dailyReward';
 import { DEFAULT_PROFILE } from './storage';
 
@@ -30,28 +33,56 @@ test('computeNextDailyStreak increments on consecutive days and resets after a g
   assert.equal(computeNextDailyStreak(getLocalDateKey(day1), 5, day4), 1);
 });
 
-test('rollDailyLoginReward grants coins or a random booster and applyDailyLoginReward updates profile', () => {
+test('7-day calendar schedule marks off claimed days, highlights today, and wraps cleanly after Day 7', () => {
+  assert.equal(DAILY_CALENDAR_SCHEDULE.length, 7);
+  assert.equal(getCalendarDayIndex(1), 1);
+  assert.equal(getCalendarDayIndex(7), 7);
+  assert.equal(getCalendarDayIndex(8), 1);
+
+  const day3 = new Date(2026, 4, 12, 10, 0, 0).getTime();
+  const day4 = new Date(2026, 4, 13, 10, 0, 0).getTime();
+  const day3Key = getLocalDateKey(day3);
+
+  // On Day 4 before claiming: Days 1-3 claimed, Day 4 today, Days 5-7 upcoming
+  const beforeClaim = getDailyCalendarStates(day3Key, 3, day4);
+  assert.equal(beforeClaim.availableToday, true);
+  assert.equal(beforeClaim.activeCycleDay, 4);
+  assert.equal(beforeClaim.daysUntilGrandPrize, 3);
+  assert.deepEqual(
+    beforeClaim.slots.map((s) => s.status),
+    ['claimed', 'claimed', 'claimed', 'today', 'upcoming', 'upcoming', 'upcoming']
+  );
+
+  // On Day 4 after claiming: Days 1-4 claimed, Days 5-7 upcoming
+  const day4Key = getLocalDateKey(day4);
+  const afterClaim = getDailyCalendarStates(day4Key, 4, day4);
+  assert.equal(afterClaim.availableToday, false);
+  assert.equal(afterClaim.activeCycleDay, 4);
+  assert.deepEqual(
+    afterClaim.slots.map((s) => s.status),
+    ['claimed', 'claimed', 'claimed', 'claimed', 'upcoming', 'upcoming', 'upcoming']
+  );
+});
+
+test('applyDailyLoginReward grants Day 1 coins, Day 2 booster, and Day 7 grand jackpot bundle', () => {
   const now = new Date(2026, 4, 12, 10, 0, 0).getTime();
 
-  // Coin branch (roll < 0.55)
-  const coinReward = rollDailyLoginReward(3, () => 0.2);
-  assert.equal(coinReward.kind, 'coins');
-  assert.equal(coinReward.amount, 70);
-  const afterCoins = applyDailyLoginReward(DEFAULT_PROFILE, coinReward, now);
-  assert.equal(afterCoins.coins, DEFAULT_PROFILE.coins + 70);
-  assert.equal(afterCoins.lastDailyRewardDate, getLocalDateKey(now));
-  assert.equal(afterCoins.dailyLoginStreak, 3);
+  const d1 = getDailyCalendarReward(1);
+  assert.equal(d1.kind, 'coins');
+  const afterD1 = applyDailyLoginReward(DEFAULT_PROFILE, d1, now);
+  assert.equal(afterD1.coins, DEFAULT_PROFILE.coins + 50);
+  assert.equal(afterD1.dailyLoginStreak, 1);
 
-  // Random booster branch (roll >= 0.55)
-  const seq = [0.8, 0.4]; // booster branch -> index 1 ('shuffle')
-  let idx = 0;
-  const boosterReward = rollDailyLoginReward(1, () => seq[idx++]);
-  assert.equal(boosterReward.kind, 'booster');
-  assert.equal(boosterReward.boosterKey, 'shuffle');
-  assert.equal(boosterReward.amount, 1);
+  const d2 = getDailyCalendarReward(2);
+  assert.equal(d2.kind, 'booster');
+  const afterD2 = applyDailyLoginReward(DEFAULT_PROFILE, d2, now);
+  assert.equal(afterD2.boosters.undo, DEFAULT_PROFILE.boosters.undo + 1);
 
-  const afterBooster = applyDailyLoginReward(DEFAULT_PROFILE, boosterReward, now);
-  assert.equal(afterBooster.boosters.shuffle, DEFAULT_PROFILE.boosters.shuffle + 1);
-  assert.equal(afterBooster.lastDailyRewardDate, getLocalDateKey(now));
-  assert.equal(afterBooster.dailyLoginStreak, 1);
+  const d7 = getDailyCalendarReward(7);
+  assert.equal(d7.kind, 'grand');
+  const afterD7 = applyDailyLoginReward(DEFAULT_PROFILE, d7, now);
+  assert.equal(afterD7.coins, DEFAULT_PROFILE.coins + 200);
+  assert.equal(afterD7.boosters.extraFlask, DEFAULT_PROFILE.boosters.extraFlask + 1);
+  assert.equal(afterD7.boosters.undo, DEFAULT_PROFILE.boosters.undo + 1);
+  assert.equal(afterD7.dailyLoginStreak, 7);
 });

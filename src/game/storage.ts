@@ -1,7 +1,25 @@
-import type { BottleStyleId, IngredientId, PlayerProfile } from './types';
+import { isValidOutcomeCgId } from './achievements';
+import type {
+  BoostersInventory,
+  BottleStyleId,
+  IngredientId,
+  PlayerProfile,
+} from './types';
 
-const STORAGE_KEY = 'solstice_sort_profile_v1';
+const STORAGE_KEY = 'solstice_sort_profile_v2';
+const LEGACY_STORAGE_KEY = 'solstice_sort_profile_v1';
 export const LIFE_REGEN_MS = 25 * 60 * 1000; // 25 minutes per life
+
+export const IN_GAME_BOOSTER_COSTS: Record<keyof BoostersInventory, number> = {
+  undo: 35,
+  shuffle: 60,
+  extraFlask: 100,
+};
+
+export const SINGLE_LIFE_COIN_COST = 40;
+export const FULL_LIVES_COIN_COST = 150;
+export const CONTINUE_COIN_COST = 100;
+export const ESSENCE_POUCH_COIN_COST = 80;
 
 export const DEFAULT_PROFILE: PlayerProfile = {
   highestLevel: 1,
@@ -10,6 +28,7 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   maxLives: 5,
   lastLifeTimestamp: Date.now(),
   streak: 0,
+  bestStreak: 0,
   boosters: {
     undo: 5,
     shuffle: 3,
@@ -23,13 +42,21 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   },
   eventStars: 0,
   claimedEventMilestones: [],
+  unlockedCgs: [],
+  claimedCgRewards: [],
+  seenNotifications: {
+    cgIds: [],
+    eventMilestones: [],
+    alembicRecipes: [],
+    dailyRewardDate: null,
+  },
   adsRemoved: false,
   soundEnabled: true,
   bgmEnabled: true,
   hapticsEnabled: true,
   colorSymbolsEnabled: false,
   bottleStyle: 'starlight',
-  language: 'zh',
+  language: 'en',
   completedTrials: [],
   lastDailyRewardDate: null,
   dailyLoginStreak: 0,
@@ -62,6 +89,7 @@ export function getNextLifeCountdownMs(profile: PlayerProfile, now = Date.now())
 export function loadProfile(): PlayerProfile {
   if (typeof window === 'undefined') return { ...DEFAULT_PROFILE };
   try {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_PROFILE, lastLifeTimestamp: Date.now() };
     const parsed = JSON.parse(raw) as Partial<PlayerProfile>;
@@ -71,12 +99,63 @@ export function loadProfile(): PlayerProfile {
       'crystal_prism',
       'botanical_brass',
     ];
+    const unlockedCgs = Array.isArray(parsed.unlockedCgs)
+      ? Array.from(new Set(parsed.unlockedCgs.filter(isValidOutcomeCgId)))
+      : [];
+    const claimedCgRewards = Array.isArray(parsed.claimedCgRewards)
+      ? Array.from(
+          new Set(
+            parsed.claimedCgRewards.filter(
+              (id) => isValidOutcomeCgId(id) && unlockedCgs.includes(id)
+            )
+          )
+        )
+      : [];
+
+    const rawSeen = parsed.seenNotifications;
+    const validRecipeIds = new Set<string>(ALEMBIC_RECIPES.map((r) => r.id));
+    const seenNotifications = {
+      cgIds: Array.isArray(rawSeen?.cgIds)
+        ? Array.from(
+            new Set(
+              rawSeen.cgIds.filter(
+                (id) => isValidOutcomeCgId(id) && unlockedCgs.includes(id)
+              )
+            )
+          )
+        : [],
+      eventMilestones: Array.isArray(rawSeen?.eventMilestones)
+        ? Array.from(
+            new Set(
+              rawSeen.eventMilestones.filter(
+                (n): n is number => typeof n === 'number' && Number.isFinite(n)
+              )
+            )
+          )
+        : [],
+      alembicRecipes: Array.isArray(rawSeen?.alembicRecipes)
+        ? Array.from(
+            new Set(
+              rawSeen.alembicRecipes.filter(
+                (id): id is string => typeof id === 'string' && validRecipeIds.has(id)
+              )
+            )
+          )
+        : [],
+      dailyRewardDate:
+        typeof rawSeen?.dailyRewardDate === 'string' ? rawSeen.dailyRewardDate : null,
+    };
+
     const merged: PlayerProfile = {
       ...DEFAULT_PROFILE,
       ...parsed,
+      bestStreak:
+        typeof parsed.bestStreak === 'number' && Number.isFinite(parsed.bestStreak)
+          ? Math.max(parsed.streak ?? 0, Math.floor(parsed.bestStreak))
+          : Math.max(0, parsed.streak ?? 0),
       bgmEnabled:
         typeof parsed.bgmEnabled === 'boolean' ? parsed.bgmEnabled : DEFAULT_PROFILE.bgmEnabled,
-      language: parsed.language === 'en' || parsed.language === 'zh' ? parsed.language : 'zh',
+      language: parsed.language === 'en' || parsed.language === 'zh' ? parsed.language : 'en',
       bottleStyle:
         parsed.bottleStyle && validStyles.includes(parsed.bottleStyle)
           ? parsed.bottleStyle
@@ -86,6 +165,10 @@ export function loadProfile(): PlayerProfile {
       claimedEventMilestones: Array.isArray(parsed.claimedEventMilestones)
         ? parsed.claimedEventMilestones
         : [],
+      unlockedCgs,
+      claimedCgRewards,
+      seenNotifications,
+      adsRemoved: Boolean(parsed.adsRemoved),
       completedTrials: Array.isArray(parsed.completedTrials) ? parsed.completedTrials : [],
       lastDailyRewardDate:
         typeof parsed.lastDailyRewardDate === 'string' ? parsed.lastDailyRewardDate : null,
@@ -174,3 +257,27 @@ export const EVENT_MILESTONES: EventMilestone[] = [
     rewardBooster: { key: 'extraFlask', amount: 2, label: '+2 Flasks' },
   },
 ];
+
+export function getCraftableRecipeIds(profile: PlayerProfile): string[] {
+  return ALEMBIC_RECIPES.filter((recipe) =>
+    (Object.keys(recipe.cost) as IngredientId[]).every(
+      (k) => profile.ingredients[k] >= recipe.cost[k]
+    )
+  ).map((recipe) => recipe.id);
+}
+
+export function getCraftableRecipeCount(profile: PlayerProfile): number {
+  return getCraftableRecipeIds(profile).length;
+}
+
+export function getClaimableMilestoneStars(profile: PlayerProfile): number[] {
+  return EVENT_MILESTONES.filter(
+    (m) =>
+      profile.eventStars >= m.starsRequired &&
+      !profile.claimedEventMilestones.includes(m.starsRequired)
+  ).map((m) => m.starsRequired);
+}
+
+export function getClaimableMilestoneCount(profile: PlayerProfile): number {
+  return getClaimableMilestoneStars(profile).length;
+}

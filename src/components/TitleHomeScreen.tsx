@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
+import { Award, Gift } from 'lucide-react';
+import { CG_ACHIEVEMENTS } from '../game/achievements';
+import { isDailyRewardAvailable } from '../game/dailyReward';
 import { triggerSemanticHaptic } from '../game/haptics';
 import { useI18n } from '../game/i18n';
+import {
+  getAchievementsBadgeCount,
+  getAlembicBadgeCount,
+  getEventsBadgeCount,
+  shouldShowDailyRewardDot,
+} from '../game/notifications';
 import { playUiClick } from '../game/sound';
 import { getNextLifeCountdownMs } from '../game/storage';
 import type { AppScreen, PlayerProfile } from '../game/types';
@@ -10,10 +19,8 @@ import {
   Coin3DIcon,
   Gear3DIcon,
   Heart3DIcon,
-  Lock3DIcon,
   Map3DIcon,
   PlusBadge3DIcon,
-  Salons3DIcon,
   ShieldCheck3DIcon,
   Shop3DIcon,
   StreakFlame3DIcon,
@@ -27,6 +34,8 @@ interface TitleHomeScreenProps {
   onNavigate: (screen: AppScreen) => void;
   onOpenSettings: () => void;
   onOpenLivesModal: () => void;
+  onOpenDailyReward: () => void;
+  onOpenRemoveAds: () => void;
 }
 
 function formatCountdown(ms: number): string {
@@ -43,6 +52,8 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
   onNavigate,
   onOpenSettings,
   onOpenLivesModal,
+  onOpenDailyReward,
+  onOpenRemoveAds,
 }) => {
   const { t } = useI18n();
   const [showStreakTip, setShowStreakTip] = useState(false);
@@ -53,20 +64,17 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
   };
 
   const lifeCountdown = getNextLifeCountdownMs(profile, nowMs);
-  const totalIngredients =
-    profile.ingredients.citrus +
-    profile.ingredients.crystal +
-    profile.ingredients.dew +
-    profile.ingredients.mist;
+  const alembicBadgeCount = getAlembicBadgeCount(profile);
+  const eventsBadgeCount = getEventsBadgeCount(profile);
+  const achievementsBadgeCount = getAchievementsBadgeCount(profile);
+  const dailyAvailable = isDailyRewardAvailable(profile.lastDailyRewardDate, nowMs);
+  const showDailyRedDot = shouldShowDailyRewardDot(profile, nowMs);
 
-  const streakTierText =
-    profile.streak >= 3
-      ? t('streakTier3')
-      : profile.streak === 2
-      ? t('streakTier2')
-      : profile.streak === 1
-      ? t('streakTier1')
-      : t('streakTier0');
+  const streakTiers = [
+    { tier: 1, text: t('streakRule1'), active: profile.streak === 1 },
+    { tier: 2, text: t('streakRule2'), active: profile.streak === 2 },
+    { tier: 3, text: t('streakRule3'), active: profile.streak >= 3 },
+  ];
 
   return (
     <div className="relative w-full h-full flex flex-col justify-between overflow-hidden font-game-body select-none">
@@ -79,17 +87,17 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#2E0E5E]/40 via-transparent to-[#2D104F]/48" />
 
-      {/* TOP BAR (Avatar, Coins Pill, Hearts Pill, 3D Settings) */}
+      {/* TOP BAR (Avatar -> Achievements, Coins Pill, Hearts Pill, 3D Settings) */}
       <header className="relative z-20 pt-3.5 px-3 flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-2 min-w-0">
-          {/* Fox Alchemist Mascot Portrait */}
+          {/* Fox Alchemist Mascot Portrait -> Achievements & Codex */}
           <button
             type="button"
             onClick={() => {
               tapFeedback();
-              onNavigate('LEVEL_MAP');
+              onNavigate('ACHIEVEMENTS');
             }}
-            aria-label={t('mapTitle')}
+            aria-label={t('achievementsTitle')}
             className="relative w-12 h-12 rounded-2xl border-[3px] border-[#FFE875] bg-[#6D23E8] shadow-[0_4px_0_#2E0870] overflow-visible cursor-pointer shrink-0 active:translate-y-0.5"
           >
             <img
@@ -98,24 +106,29 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover rounded-[13px]"
             />
-            {totalIngredients >= 3 && (
+            {achievementsBadgeCount > 0 && (
               <span
                 aria-hidden="true"
-                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#E81938] border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow"
+                className="absolute -bottom-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#E81938] border-2 border-white text-white text-[10px] font-black flex items-center justify-center shadow font-tabular"
               >
-                !
+                {achievementsBadgeCount}
               </span>
             )}
           </button>
 
           {/* Coins Pill (9-slice Cream-Gold Capsule) */}
           <div className="relative flex items-center">
-            <div
+            <button
+              type="button"
+              onClick={() => {
+                tapFeedback();
+                onNavigate('SHOP');
+              }}
               aria-label={`${t('coinsLabel')} ${profile.coins}`}
-              className="candy-pill-cream flex items-center pl-7 pr-3.5 py-1.5 text-[#5A2906] text-sm font-black font-tabular leading-none"
+              className="candy-pill-cream flex items-center pl-7 pr-3.5 py-1.5 text-[#5A2906] text-sm font-black font-tabular leading-none cursor-pointer"
             >
               <span>{profile.coins.toLocaleString()}</span>
-            </div>
+            </button>
             <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
               <Coin3DIcon className="w-8 h-8 drop-shadow" />
             </div>
@@ -193,28 +206,10 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* EDGE-RAIL FLOATING ICON BADGES */}
+      {/* EDGE-RAIL FLOATING ICON BADGES (Balanced 2+2: Left Map+Daily, Right Streak+RemoveAds) */}
       <div className="relative z-20 flex-1 flex items-start justify-between px-2.5 pt-2 pointer-events-none">
-        {/* Left Edge Rail: Gala + Map */}
+        {/* Left Edge Rail: Level Map + Daily Gift */}
         <div className="flex flex-col gap-2.5 pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => {
-              tapFeedback();
-              onNavigate('EVENT');
-            }}
-            aria-label={t('eventTitle')}
-            className="candy-btn-purple w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
-          >
-            <Trophy3DIcon className="w-8 h-8" />
-            <span className="text-[10px] font-black text-white leading-tight game-stroke-xs whitespace-nowrap">
-              {t('galaBadge')}
-            </span>
-            <span className="mt-0.5 px-1.5 rounded-full bg-[#240657]/75 text-[#FFE97D] text-[9px] font-black font-tabular">
-              {profile.eventStars}/100
-            </span>
-          </button>
-
           <button
             type="button"
             onClick={() => {
@@ -230,6 +225,35 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             </span>
             <span className="mt-0.5 px-1.5 rounded-full bg-[#092F73]/75 text-[#FFF7DF] text-[9px] font-black font-tabular whitespace-nowrap">
               {t('levelShort', { n: profile.highestLevel })}
+            </span>
+          </button>
+
+          {/* Daily Login Gift Shortcut */}
+          <button
+            type="button"
+            onClick={() => {
+              tapFeedback();
+              onOpenDailyReward();
+            }}
+            aria-label={t('dailyRewardTitle')}
+            className="relative candy-btn-purple w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
+          >
+            {showDailyRedDot && (
+              <span
+                aria-hidden="true"
+                className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E81938] border-2 border-white shadow animate-pulse"
+              />
+            )}
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-b from-[#FFE680] to-[#F59B14] border border-[#FFF7C2] flex items-center justify-center shadow">
+              <Gift className="w-4 h-4 text-[#6B2704]" />
+            </div>
+            <span className="text-[10px] font-black text-white leading-tight mt-0.5 game-stroke-xs whitespace-nowrap">
+              {t('dailyBadge')}
+            </span>
+            <span className="mt-0.5 px-1.5 rounded-full bg-[#240657]/75 text-[#FFE97D] text-[9px] font-black font-tabular whitespace-nowrap">
+              {dailyAvailable
+                ? t('dailyClaimReady')
+                : t('dailyDayShort', { n: Math.max(1, profile.dailyLoginStreak) })}
             </span>
           </button>
         </div>
@@ -256,25 +280,46 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             </button>
 
             {showStreakTip && (
-              <div className="absolute right-[72px] top-0 w-52 candy-panel-frame p-2.5 text-left z-30">
-                <div className="text-[11px] font-black text-[#FFF7D6]">
-                  {t('streakTooltipTitle', { n: profile.streak })}
+              <div className="absolute right-[72px] top-0 w-56 candy-panel-frame p-2.5 text-left z-30 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-black text-[#FFF7D6]">
+                  <span>{t('streakTooltipTitle', { n: profile.streak })}</span>
+                  <span className="text-[10px] text-[#FFE89A] font-tabular">
+                    {t('streakBestRecord', { n: profile.bestStreak })}
+                  </span>
                 </div>
-                <div className="text-[10px] font-bold text-[#4A2305] bg-[#FFF8E6] rounded-xl p-1.5 mt-1 leading-snug">
-                  {streakTierText}
+                <div className="bg-[#FFF8E6] rounded-xl p-2 space-y-1 text-[10px] font-bold text-[#6E3B10]">
+                  {profile.streak === 0 && (
+                    <div className="text-[#8A5A1A] leading-snug pb-0.5">{t('streakTier0')}</div>
+                  )}
+                  {streakTiers.map((item) => (
+                    <div
+                      key={item.tier}
+                      className={`px-1.5 py-0.5 rounded-lg leading-snug ${
+                        item.active
+                          ? 'bg-[#FFE596] text-[#5C2600] font-black border border-[#E89B1C]'
+                          : 'opacity-80'
+                      }`}
+                    >
+                      {item.active ? '★ ' : '· '}
+                      {item.text}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
 
+          {/* Remove Ads / Ad-Free Entitlement Badge */}
           <button
             type="button"
             onClick={() => {
               tapFeedback();
-              onNavigate('SHOP');
+              onOpenRemoveAds();
             }}
             aria-label={profile.adsRemoved ? t('adFreeBadge') : t('noAdsBadge')}
-            className="candy-btn-purple w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer"
+            className={`${
+              profile.adsRemoved ? 'candy-btn-gold' : 'candy-btn-purple'
+            } w-[66px] py-2 px-1 flex flex-col items-center cursor-pointer`}
           >
             <ShieldCheck3DIcon className="w-7 h-7 drop-shadow" />
             <span className="text-[10px] font-black text-white leading-tight mt-0.5 game-stroke-xs whitespace-nowrap">
@@ -284,7 +329,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM SECTION: Giant 9-Slice Candy-Green Play Button + Royal Violet-Purple 5-Tab Dock */}
+      {/* BOTTOM SECTION: Giant 9-Slice Candy-Green Play Button + 5-Tab Royal Purple & Gold Dock */}
       <div className="relative z-20 flex flex-col items-center">
         <div className="w-full px-10 mb-5 flex flex-col items-center">
           <button
@@ -307,7 +352,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
           </button>
         </div>
 
-        {/* 5-Tab Royal Violet-Purple & Gold Bottom Dock */}
+        {/* 5-Tab Royal Violet-Purple & Gold Bottom Dock: Shop | Events | Home | Achievements | Alembic */}
         <nav
           aria-label="Primary game sections"
           className="w-full grid grid-cols-5 items-end bg-gradient-to-b from-[#6B2DE0] via-[#531EB8] to-[#3B108C] border-t-[3.5px] border-[#FFE875] shadow-[0_-4px_18px_rgba(32,6,72,0.5)] pt-1.5 pb-2 px-1"
@@ -332,9 +377,16 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
               tapFeedback();
               onNavigate('EVENT');
             }}
-            className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer border-r border-[#FFE875]/25"
+            className="relative flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer border-r border-[#FFE875]/25"
           >
-            <Trophy3DIcon className="w-8 h-8 drop-shadow" />
+            <div className="relative">
+              <Trophy3DIcon className="w-8 h-8 drop-shadow" />
+              {eventsBadgeCount > 0 && (
+                <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#E81938] border border-white text-white text-[9px] font-black flex items-center justify-center font-tabular">
+                  {eventsBadgeCount}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5 whitespace-nowrap">
               {t('navEvents')}
             </span>
@@ -356,25 +408,35 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             </span>
           </button>
 
+          {/* Achievements / CG Codex Tab (Replaces dead-end Salons!) */}
           <button
             type="button"
             onClick={() => {
               tapFeedback();
-              onNavigate('SALONS');
+              onNavigate('ACHIEVEMENTS');
             }}
             className="relative flex flex-col items-center justify-center py-1 rounded-xl hover:bg-white/12 cursor-pointer border-r border-[#FFE875]/25"
           >
-            <div className="relative">
-              <Salons3DIcon className="w-8 h-8 drop-shadow" />
-              <span className="absolute -top-1 -right-1.5 w-4 h-4 flex items-center justify-center">
-                <Lock3DIcon className="w-4 h-4 drop-shadow" />
-              </span>
+            <div className="relative flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-b from-[#FFE680] via-[#F9B224] to-[#D96B08] border-2 border-[#FFF6C4] shadow-[0_2px_0_#7A3203] flex items-center justify-center">
+                <Award className="w-5 h-5 text-[#5E2202] drop-shadow-sm" />
+              </div>
+              {achievementsBadgeCount > 0 ? (
+                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[#E81938] border border-white text-white text-[9px] font-black flex items-center justify-center font-tabular">
+                  {achievementsBadgeCount}
+                </span>
+              ) : (
+                <span className="absolute -top-1.5 -right-2.5 px-1 rounded-full bg-[#240657]/90 border border-[#FFE875]/75 text-[#FFE97D] text-[8.5px] font-black font-tabular leading-tight">
+                  {profile.unlockedCgs.length}/{CG_ACHIEVEMENTS.length}
+                </span>
+              )}
             </div>
             <span className="text-[10px] font-black text-white game-stroke-xs mt-0.5 whitespace-nowrap">
-              {t('navSalons')}
+              {t('navAchievements')}
             </span>
           </button>
 
+          {/* Sun Alembic Tab (Unseen newly craftable recipe badge) */}
           <button
             type="button"
             onClick={() => {
@@ -385,9 +447,9 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
           >
             <div className="relative">
               <Cauldron3DIcon className="w-8 h-8 drop-shadow" />
-              {totalIngredients > 0 && (
-                <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#E81938] border border-white text-white text-[9px] font-black flex items-center justify-center font-tabular">
-                  {totalIngredients}
+              {alembicBadgeCount > 0 && (
+                <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-[#29B80A] border border-white text-white text-[9px] font-black flex items-center justify-center font-tabular">
+                  {alembicBadgeCount}
                 </span>
               )}
             </div>

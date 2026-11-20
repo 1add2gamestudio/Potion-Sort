@@ -41,9 +41,9 @@ import {
   evaluateSpeedBonus,
   formatCountdown,
 } from '../game/speedBonus';
+import { IN_GAME_BOOSTER_COSTS } from '../game/storage';
 import {
   type Bottle,
-  type BottleStyleId,
   type CgTier,
   type LevelSpec,
   type LiquidLayer,
@@ -123,7 +123,7 @@ interface GameplayScreenProps {
   onToggleMute: () => void;
   onRestartRequest: () => void;
   onConsumeBooster: (key: 'undo' | 'shuffle' | 'extraFlask') => boolean;
-  onRequestRewardedBooster: (key: 'undo' | 'shuffle' | 'extraFlask') => void;
+  onBuyInGameBooster: (key: 'undo' | 'shuffle' | 'extraFlask') => boolean;
   onVictory: (stats: {
     moves: number;
     elapsedSec: number;
@@ -133,8 +133,6 @@ interface GameplayScreenProps {
     bottlesCount: number;
   }) => void;
   onGiveUp: (stats: { completedBottles: number; totalBottles: number }) => void;
-  onSelectBottleStyle: (style: BottleStyleId) => void;
-  onOpenBottleCompare: () => void;
 }
 
 const CRATE_SHARDS = [
@@ -184,7 +182,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   onToggleMute,
   onRestartRequest,
   onConsumeBooster,
-  onRequestRewardedBooster,
+  onBuyInGameBooster,
   onVictory,
   onGiveUp,
 }) => {
@@ -814,11 +812,17 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
   const handleUndo = () => {
     if (history.length === 0 || wonRef.current) return;
+    let boughtWithCoins = false;
     if (freeStreakUndos > 0) {
       setFreeStreakUndos((c) => c - 1);
     } else if (!onConsumeBooster('undo')) {
-      onRequestRewardedBooster('undo');
-      return;
+      if (!onBuyInGameBooster('undo')) {
+        playErrorTap(profile.soundEnabled);
+        triggerSemanticHaptic(profile.hapticsEnabled, 'error');
+        pushReaction('fox', t('reactNotEnoughCoins', { cost: IN_GAME_BOOSTER_COSTS.undo }));
+        return;
+      }
+      boughtWithCoins = true;
     }
     cancelPourAnimation();
     cancelAllSealAnimations();
@@ -828,14 +832,25 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setSelectedId(null);
     playPickupClink(profile.soundEnabled);
     triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
-    pushReaction('fox', t('reactUndoDone'));
+    pushReaction(
+      'fox',
+      boughtWithCoins
+        ? t('reactBoughtBooster', { cost: IN_GAME_BOOSTER_COSTS.undo })
+        : t('reactUndoDone')
+    );
   };
 
   const handleShuffle = () => {
     if (wonRef.current) return;
+    let boughtWithCoins = false;
     if (!onConsumeBooster('shuffle')) {
-      onRequestRewardedBooster('shuffle');
-      return;
+      if (!onBuyInGameBooster('shuffle')) {
+        playErrorTap(profile.soundEnabled);
+        triggerSemanticHaptic(profile.hapticsEnabled, 'error');
+        pushReaction('fox', t('reactNotEnoughCoins', { cost: IN_GAME_BOOSTER_COSTS.shuffle }));
+        return;
+      }
+      boughtWithCoins = true;
     }
     cancelPourAnimation();
     cancelAllSealAnimations();
@@ -844,7 +859,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setSelectedId(null);
     playObstacleUnlockSound(profile.soundEnabled, 'curtain');
     triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
-    pushReaction('dragon', t('reactShuffleDone'));
+    pushReaction(
+      'dragon',
+      boughtWithCoins
+        ? t('reactBoughtBooster', { cost: IN_GAME_BOOSTER_COSTS.shuffle })
+        : t('reactShuffleDone')
+    );
   };
 
   const handleAddFlask = () => {
@@ -856,16 +876,27 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       pushReaction('fox', t('reactMaxExtraFlasks'));
       return;
     }
+    let boughtWithCoins = false;
     if (!onConsumeBooster('extraFlask')) {
-      onRequestRewardedBooster('extraFlask');
-      return;
+      if (!onBuyInGameBooster('extraFlask')) {
+        playErrorTap(profile.soundEnabled);
+        triggerSemanticHaptic(profile.hapticsEnabled, 'error');
+        pushReaction('fox', t('reactNotEnoughCoins', { cost: IN_GAME_BOOSTER_COSTS.extraFlask }));
+        return;
+      }
+      boughtWithCoins = true;
     }
     cancelPourAnimation();
     setBottles((curr) => addExtraFlaskBooster(curr));
     setSelectedId(null);
     playBottleComplete(profile.soundEnabled, 0);
     triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
-    pushReaction('dragon', t('reactExtraFlaskAdded'));
+    pushReaction(
+      'dragon',
+      boughtWithCoins
+        ? t('reactBoughtBooster', { cost: IN_GAME_BOOSTER_COSTS.extraFlask })
+        : t('reactExtraFlaskAdded')
+    );
   };
 
   const difficultyLabel =
@@ -1460,9 +1491,14 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             className="candy-btn-blue relative w-[64px] h-[58px] flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
           >
             <Undo3DIcon className="w-8 h-8" />
-            <span className="absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-[#E81938] border-2 border-white text-white text-xs font-black flex items-center justify-center shadow font-tabular">
-              {totalUndoCount > 0 ? totalUndoCount : '+'}
-              {freeStreakUndos > 0 ? '★' : ''}
+            <span
+              className={`absolute -bottom-2 -right-2 min-w-[26px] h-6 px-1.5 rounded-full border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow font-tabular ${
+                totalUndoCount > 0 ? 'bg-[#E81938]' : 'bg-[#D97706]'
+              }`}
+            >
+              {totalUndoCount > 0
+                ? `${totalUndoCount}${freeStreakUndos > 0 ? '★' : ''}`
+                : `${IN_GAME_BOOSTER_COSTS.undo}🪙`}
             </span>
           </button>
 
@@ -1474,8 +1510,14 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             className="candy-btn-blue relative w-[64px] h-[58px] flex items-center justify-center cursor-pointer"
           >
             <Shuffle3DIcon className="w-8 h-8" />
-            <span className="absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-[#E81938] border-2 border-white text-white text-xs font-black flex items-center justify-center shadow font-tabular">
-              {profile.boosters.shuffle > 0 ? profile.boosters.shuffle : t('boosterAdShort')}
+            <span
+              className={`absolute -bottom-2 -right-2 min-w-[26px] h-6 px-1.5 rounded-full border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow font-tabular ${
+                profile.boosters.shuffle > 0 ? 'bg-[#E81938]' : 'bg-[#D97706]'
+              }`}
+            >
+              {profile.boosters.shuffle > 0
+                ? profile.boosters.shuffle
+                : `${IN_GAME_BOOSTER_COSTS.shuffle}🪙`}
             </span>
           </button>
 
@@ -1487,8 +1529,14 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             className="candy-btn-blue relative w-[64px] h-[58px] flex items-center justify-center cursor-pointer"
           >
             <ExtraBottle3DIcon className="w-8 h-8" />
-            <span className="absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-[#E81938] border-2 border-white text-white text-xs font-black flex items-center justify-center shadow font-tabular">
-              {profile.boosters.extraFlask > 0 ? profile.boosters.extraFlask : t('boosterAdShort')}
+            <span
+              className={`absolute -bottom-2 -right-2 min-w-[26px] h-6 px-1.5 rounded-full border-2 border-white text-white text-[11px] font-black flex items-center justify-center shadow font-tabular ${
+                profile.boosters.extraFlask > 0 ? 'bg-[#E81938]' : 'bg-[#D97706]'
+              }`}
+            >
+              {profile.boosters.extraFlask > 0
+                ? profile.boosters.extraFlask
+                : `${IN_GAME_BOOSTER_COSTS.extraFlask}🪙`}
             </span>
           </button>
         </div>

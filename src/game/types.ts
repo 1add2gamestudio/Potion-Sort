@@ -111,7 +111,14 @@ export interface LevelSpec {
   mechanicsIntroduced: string[];
 }
 
-export type AppScreen = 'HOME' | 'PLAYING' | 'LEVEL_MAP' | 'ALEMBIC' | 'SHOP' | 'EVENT' | 'SALONS';
+export type AppScreen =
+  | 'HOME'
+  | 'PLAYING'
+  | 'LEVEL_MAP'
+  | 'ALEMBIC'
+  | 'SHOP'
+  | 'EVENT'
+  | 'ACHIEVEMENTS';
 
 export type BottleStyleId = 'starlight' | 'royal_crown' | 'crystal_prism' | 'botanical_brass';
 
@@ -119,6 +126,7 @@ export type LanguageCode = 'zh' | 'en';
 
 export type CgOutcome = 'victory' | 'defeat';
 export type CgTier = 1 | 2 | 3;
+export type OutcomeCgId = `${CgOutcome}_${CgTier}`;
 
 export type PlayModal =
   | 'NONE'
@@ -128,8 +136,7 @@ export type PlayModal =
   | 'NO_LIVES'
   | 'SETTINGS'
   | 'AD_SIMULATION'
-  | 'BOTTLE_COMPARE'
-  | 'CG_GALLERY'
+  | 'REMOVE_ADS_CONFIRM'
   | 'DAILY_REWARD';
 
 export interface BoostersInventory {
@@ -145,6 +152,13 @@ export interface IngredientsInventory {
   mist: number;
 }
 
+export interface NotificationSeenState {
+  cgIds: OutcomeCgId[];
+  eventMilestones: number[];
+  alembicRecipes: string[];
+  dailyRewardDate: string | null;
+}
+
 export interface PlayerProfile {
   highestLevel: number;
   coins: number;
@@ -152,10 +166,14 @@ export interface PlayerProfile {
   maxLives: number;
   lastLifeTimestamp: number;
   streak: number;
+  bestStreak: number;
   boosters: BoostersInventory;
   ingredients: IngredientsInventory;
   eventStars: number;
   claimedEventMilestones: number[];
+  unlockedCgs: OutcomeCgId[];
+  claimedCgRewards: OutcomeCgId[];
+  seenNotifications: NotificationSeenState;
   adsRemoved: boolean;
   soundEnabled: boolean;
   bgmEnabled: boolean;

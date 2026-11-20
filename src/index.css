@@ -51,7 +51,6 @@
 /* 3D Satin-Gold 9-Slice Candy Game Buttons (Static Transparent PNGs in /assets/ui/) */
 .candy-btn-green,
 .candy-btn-blue,
-.candy-btn-teal,
 .candy-btn-amber,
 .candy-btn-gold,
 .candy-btn-purple,
@@ -70,7 +69,6 @@
 
 .candy-btn-green,
 .candy-btn-blue,
-.candy-btn-teal,
 .candy-btn-amber,
 .candy-btn-gold,
 .candy-btn-purple {
@@ -88,10 +86,6 @@
 .candy-btn-blue {
   background-image: linear-gradient(180deg, #5268f4 0%, #3745d8 100%);
   border-image-source: url('/assets/ui/btn-blue.png');
-}
-.candy-btn-teal {
-  background-image: linear-gradient(180deg, #2ee5c5 0%, #15b6a0 100%);
-  border-image-source: url('/assets/ui/btn-teal.png');
 }
 .candy-btn-amber,
 .candy-btn-gold {
@@ -144,7 +138,6 @@
 /* Strictly integer translateY (zero fractional scale) prevents Skia 9-slice tile seams on click */
 .candy-btn-green:active:not(:disabled),
 .candy-btn-blue:active:not(:disabled),
-.candy-btn-teal:active:not(:disabled),
 .candy-btn-amber:active:not(:disabled),
 .candy-btn-gold:active:not(:disabled),
 .candy-btn-purple:active:not(:disabled),
@@ -157,7 +150,6 @@
 
 .candy-btn-green:disabled,
 .candy-btn-blue:disabled,
-.candy-btn-teal:disabled,
 .candy-btn-amber:disabled,
 .candy-btn-gold:disabled,
 .candy-btn-purple:disabled,
@@ -235,21 +227,6 @@
   }
 }
 
-@keyframes cork-pop {
-  0% {
-    transform: translateY(-16px) scale(0.5);
-    opacity: 0;
-  }
-  65% {
-    transform: translateY(2px) scale(1.12);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(0px) scale(1);
-    opacity: 1;
-  }
-}
-
 @keyframes sparkle-pulse {
   0%, 100% {
     transform: scale(0.92);
@@ -276,80 +253,8 @@
   }
 }
 
-@keyframes liquid-swell {
-  0% {
-    transform: scaleY(0.12);
-    opacity: 0.78;
-  }
-  58% {
-    transform: scaleY(1.08);
-    opacity: 1;
-  }
-  82% {
-    transform: scaleY(0.97);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-@keyframes meniscus-ripple {
-  0% {
-    transform: scaleX(0.7) scaleY(1.75);
-  }
-  40% {
-    transform: scaleX(1.07) scaleY(0.75);
-  }
-  72% {
-    transform: scaleX(0.96) scaleY(1.18);
-  }
-  100% {
-    transform: scaleX(1) scaleY(1);
-  }
-}
-
-@keyframes stream-draw {
-  0% {
-    stroke-dashoffset: 100;
-    opacity: 0.95;
-  }
-  28% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-  68% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: -102;
-    opacity: 0.1;
-  }
-}
-
-@keyframes splash-ring {
-  0% {
-    transform: scale(0.35);
-    opacity: 0.95;
-  }
-  60% {
-    transform: scale(1.25);
-    opacity: 0.85;
-  }
-  100% {
-    transform: scale(1.55);
-    opacity: 0;
-  }
-}
-
 .animate-gentle-float {
   animation: gentle-float 3.4s ease-in-out infinite;
-}
-
-.animate-cork-pop {
-  animation: cork-pop 0.38s cubic-bezier(0.22, 1.28, 0.36, 1) forwards;
 }
 
 .animate-sparkle-pulse {
@@ -358,23 +263,6 @@
 
 .animate-mascot-cheer {
   animation: mascot-cheer 0.32s ease-out forwards;
-}
-
-.animate-liquid-swell {
-  animation: liquid-swell 0.42s cubic-bezier(0.22, 1.2, 0.36, 1) 0.1s both;
-}
-
-.animate-meniscus-ripple {
-  animation: meniscus-ripple 0.44s ease-out 0.14s both;
-}
-
-.animate-stream-draw {
-  stroke-dasharray: 100 110;
-  animation: stream-draw 0.56s cubic-bezier(0.35, 0, 0.2, 1) forwards;
-}
-
-.animate-splash-ring {
-  animation: splash-ring 0.44s ease-out 0.14s both;
 }
 
 @keyframes mascot-breathe {
@@ -404,33 +292,6 @@
   }
 }
 
-@keyframes paw-clap-left {
-  0%, 100% {
-    transform: translateX(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateX(5px) rotate(18deg);
-  }
-}
-
-@keyframes paw-clap-right {
-  0%, 100% {
-    transform: translateX(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateX(-5px) rotate(-18deg);
-  }
-}
-
-@keyframes tail-wag {
-  0%, 100% {
-    transform: rotate(-4deg);
-  }
-  50% {
-    transform: rotate(7deg);
-  }
-}
-
 .animate-mascot-breathe {
   animation: mascot-breathe 3.2s ease-in-out infinite;
   transform-origin: center bottom;
@@ -439,18 +300,6 @@
 .animate-mascot-clap-bounce {
   animation: mascot-clap-bounce 0.72s ease-in-out infinite;
   transform-origin: center bottom;
-}
-
-.animate-paw-clap-left {
-  animation: paw-clap-left 0.24s ease-in-out infinite;
-}
-
-.animate-paw-clap-right {
-  animation: paw-clap-right 0.24s ease-in-out infinite;
-}
-
-.animate-tail-wag {
-  animation: tail-wag 1.4s ease-in-out infinite;
 }
 
 @keyframes potion-shimmer {
@@ -781,18 +630,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-gentle-float,
-  .animate-cork-pop,
   .animate-sparkle-pulse,
   .animate-mascot-cheer,
-  .animate-liquid-swell,
-  .animate-meniscus-ripple,
-  .animate-stream-draw,
-  .animate-splash-ring,
   .animate-mascot-breathe,
   .animate-mascot-clap-bounce,
-  .animate-paw-clap-left,
-  .animate-paw-clap-right,
-  .animate-tail-wag,
   .animate-potion-shimmer,
   .animate-potion-bubble,
   .animate-cg-kenburns,

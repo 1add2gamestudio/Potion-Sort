@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   GameModals,
-  type AdRequest,
   type DefeatSnapshot,
   type VictorySnapshot,
 } from './components/GameModals';
 import { GameplayScreen } from './components/GameplayScreen';
 import {
+  AchievementsView,
   AlembicView,
   EventView,
   LevelMapView,
-  SalonsComingSoonView,
   ShopView,
 } from './components/MetaViews';
 import { TitleHomeScreen } from './components/TitleHomeScreen';
+import {
+  claimAllCgAchievementRewards,
+  claimCgAchievementReward,
+  unlockOutcomeCg,
+} from './game/achievements';
+import {
+  applyRemoveAdsPurchase,
+  evaluateInterstitialPacing,
+  type AdRequest,
+} from './game/adService';
 import {
   applyDailyLoginReward,
   computeNextDailyStreak,
@@ -25,6 +34,13 @@ import { addExtraFlaskBooster } from './game/engine';
 import { triggerSemanticHaptic } from './game/haptics';
 import { LanguageProvider, createI18nValue } from './game/i18n';
 import { EVENT_TRIALS, getLevelSpec, getTrialLevelSpec } from './game/levelGenerator';
+import {
+  markAchievementsSeen,
+  markAlembicSeen,
+  markDailyRewardSeen,
+  markEventsSeen,
+  syncAlembicSeenAfterBrew,
+} from './game/notifications';
 import {
   preloadOutcomeCgs,
   resolveDefeatCgTier,
@@ -40,8 +56,13 @@ import {
   stopPourSound,
 } from './game/sound';
 import {
+  CONTINUE_COIN_COST,
   DEFAULT_PROFILE,
+  ESSENCE_POUCH_COIN_COST,
   EVENT_MILESTONES,
+  FULL_LIVES_COIN_COST,
+  IN_GAME_BOOSTER_COSTS,
+  SINGLE_LIFE_COIN_COST,
   loadProfile,
   regenerateLives,
   saveProfile,
@@ -51,9 +72,12 @@ import type {
   AppScreen,
   IngredientId,
   LevelSpec,
+  OutcomeCgId,
   PlayModal,
   PlayerProfile,
 } from './game/types';
+
+const ALL_INGREDIENTS: IngredientId[] = ['citrus', 'crystal', 'dew', 'mist'];
 
 export default function App() {
   const [profile, setProfile] = useState<PlayerProfile>(() => loadProfile());
@@ -77,6 +101,7 @@ export default function App() {
   const [adRequest, setAdRequest] = useState<AdRequest | null>(null);
   const [pendingDailyReward, setPendingDailyReward] = useState<DailyRewardGrant | null>(null);
   const dailyCheckedRef = useRef(false);
+  const clearsSinceInterstitialRef = useRef(0);
   const [levelFailCounts, setLevelFailCounts] = useState<Record<number, number>>({});
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
@@ -98,6 +123,7 @@ export default function App() {
       );
       const gift = rollDailyLoginReward(nextStreak);
       setPendingDailyReward(gift);
+      setProfile((curr) => markDailyRewardSeen(curr));
       setModal('DAILY_REWARD');
     }
   }, [screen, modal, profile.lastDailyRewardDate, profile.dailyLoginStreak]);
@@ -217,6 +243,17 @@ export default function App() {
     [profile.soundEnabled]
   );
 
+  const handleNavigate = useCallback((nextScreen: AppScreen) => {
+    if (nextScreen === 'ACHIEVEMENTS') {
+      setProfile((curr) => markAchievementsSeen(curr));
+    } else if (nextScreen === 'EVENT') {
+      setProfile((curr) => markEventsSeen(curr));
+    } else if (nextScreen === 'ALEMBIC') {
+      setProfile((curr) => markAlembicSeen(curr));
+    }
+    setScreen(nextScreen);
+  }, []);
+
   // Keyboard shortcuts (Enter/Space to start on Home, Esc/P to Pause, M to Mute)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -252,23 +289,45 @@ export default function App() {
       ? EVENT_TRIALS.find((t) => t.id === activeTrialId)
       : null;
 
+    const isTrial = Boolean(activeTrialId);
+    const isTrialFirstClear = Boolean(
+      activeTrialId && !profile.completedTrials.includes(activeTrialId)
+    );
+    const isFrontierCampaign = !isTrial && activeLevel.levelNumber >= profile.highestLevel;
+    const isPracticeReplay = !isTrial && !isFrontierCampaign;
+
     const starsEarned = trialMeta
-      ? trialMeta.starReward
+      ? isTrialFirstClear
+        ? trialMeta.starReward
+        : 0
+      : isPracticeReplay
+      ? 0
       : activeLevel.difficulty === 'super_hard'
       ? 12
       : activeLevel.difficulty === 'hard'
       ? 8
       : 5;
 
-    const baseCoins = trialMeta ? 60 : activeLevel.rewardCoins;
+    const baseCoins = trialMeta
+      ? isTrialFirstClear
+        ? 60
+        : 20
+      : isPracticeReplay
+      ? 15
+      : activeLevel.rewardCoins;
     const coinsEarned = baseCoins + stats.speedBonusCoins;
     const ingredient = activeLevel.rewardIngredient;
-    const nextStreak = activeTrialId ? profile.streak : profile.streak + 1;
+
+    // Only campaign frontier clears advance the win streak (prevents Level-1 streak farming)
+    const nextStreak = isFrontierCampaign ? profile.streak + 1 : profile.streak;
     const cgTier = resolveVictoryCgTier({
       streakAfterWin: nextStreak,
       difficulty: activeLevel.difficulty,
-      isTrial: Boolean(activeTrialId),
+      isTrial,
     });
+
+    // Check if this outcome unlocks a new CG achievement
+    const cgUnlockPreview = unlockOutcomeCg(profile, 'victory', cgTier);
 
     // Clear consecutive failure counter for this level on win
     setLevelFailCounts((prev) => {
@@ -278,24 +337,26 @@ export default function App() {
       return next;
     });
 
-    setProfile((curr) => ({
-      ...curr,
-      highestLevel:
-        !activeTrialId && activeLevel.levelNumber >= curr.highestLevel
-          ? activeLevel.levelNumber + 1
-          : curr.highestLevel,
-      coins: curr.coins + coinsEarned,
-      streak: activeTrialId ? curr.streak : curr.streak + 1,
-      eventStars: Math.min(100, curr.eventStars + starsEarned),
-      ingredients: {
-        ...curr.ingredients,
-        [ingredient]: curr.ingredients[ingredient] + 1,
-      },
-      completedTrials:
-        activeTrialId && !curr.completedTrials.includes(activeTrialId)
-          ? [...curr.completedTrials, activeTrialId]
-          : curr.completedTrials,
-    }));
+    setProfile((curr) => {
+      const updatedStreak = isFrontierCampaign ? curr.streak + 1 : curr.streak;
+      const unlockedRes = unlockOutcomeCg(curr, 'victory', cgTier);
+      return {
+        ...unlockedRes.profile,
+        highestLevel: isFrontierCampaign ? activeLevel.levelNumber + 1 : curr.highestLevel,
+        coins: curr.coins + coinsEarned,
+        streak: updatedStreak,
+        bestStreak: Math.max(curr.bestStreak, updatedStreak),
+        eventStars: Math.min(100, curr.eventStars + starsEarned),
+        ingredients: {
+          ...curr.ingredients,
+          [ingredient]: curr.ingredients[ingredient] + 1,
+        },
+        completedTrials:
+          activeTrialId && !curr.completedTrials.includes(activeTrialId)
+            ? [...curr.completedTrials, activeTrialId]
+            : curr.completedTrials,
+      };
+    });
 
     const i18n = createI18nValue(profile.language);
     const localizedTrialTitle = trialMeta
@@ -306,8 +367,9 @@ export default function App() {
       levelNumber: activeLevel.levelNumber,
       levelTitle: localizedTrialTitle,
       potionOrderName: activeLevel.potionOrderName,
-      isTrial: Boolean(activeTrialId),
+      isTrial,
       trialId: activeTrialId,
+      isPracticeReplay,
       moves: stats.moves,
       elapsedSec: stats.elapsedSec,
       targetSec: stats.targetSec,
@@ -318,6 +380,7 @@ export default function App() {
       ingredient,
       doubled: false,
       cgTier,
+      newlyUnlockedCgCoins: cgUnlockPreview.newlyUnlocked ? cgUnlockPreview.rewardCoins : null,
     });
     setModal('VICTORY');
   };
@@ -336,12 +399,13 @@ export default function App() {
   };
 
   const handleRestartConfirm = () => {
+    const current = regenerateLives(profile);
     if (!activeTrialId) {
       deductLifeAndResetStreak();
-    }
-    if (!activeTrialId && profile.lives - 1 <= 0) {
-      setModal('NO_LIVES');
-      return;
+      if (current.lives - 1 <= 0) {
+        setModal('NO_LIVES');
+        return;
+      }
     }
     setModal('NONE');
     setRunKey((k) => k + 1);
@@ -362,6 +426,11 @@ export default function App() {
       hadStreak: profile.streak,
     });
 
+    const cgUnlockPreview = unlockOutcomeCg(profile, 'defeat', cgTier);
+    if (cgUnlockPreview.newlyUnlocked) {
+      setProfile((curr) => unlockOutcomeCg(curr, 'defeat', cgTier).profile);
+    }
+
     playDefeatChime(profile.soundEnabled, cgTier);
     triggerSemanticHaptic(profile.hapticsEnabled, 'defeat');
 
@@ -369,14 +438,42 @@ export default function App() {
       completedBottles: stats.completedBottles,
       totalBottles: stats.totalBottles,
       cgTier,
+      newlyUnlockedCgCoins: cgUnlockPreview.newlyUnlocked ? cgUnlockPreview.rewardCoins : null,
     });
     setModal('DEFEAT');
   };
 
+  const handleContinueAfterDefeat = () => {
+    if (profile.boosters.extraFlask > 0) {
+      setProfile((curr) => ({
+        ...curr,
+        boosters: {
+          ...curr.boosters,
+          extraFlask: Math.max(0, curr.boosters.extraFlask - 1),
+        },
+      }));
+    } else if (profile.coins >= CONTINUE_COIN_COST) {
+      setProfile((curr) => ({
+        ...curr,
+        coins: curr.coins - CONTINUE_COIN_COST,
+      }));
+    } else {
+      return;
+    }
+
+    playBottleComplete(profile.soundEnabled, 0);
+    setActiveLevel((curr) => ({
+      ...curr,
+      bottles: addExtraFlaskBooster(curr.bottles),
+    }));
+    setModal('NONE');
+  };
+
   const handleRetryAfterDefeat = () => {
+    const current = regenerateLives(profile);
     if (!activeTrialId) {
       deductLifeAndResetStreak();
-      if (profile.lives - 1 <= 0) {
+      if (current.lives - 1 <= 0) {
         setModal('NO_LIVES');
         return;
       }
@@ -387,7 +484,7 @@ export default function App() {
 
   const handleExitToHome = () => {
     setModal('NONE');
-    setScreen(activeTrialId ? 'EVENT' : 'HOME');
+    handleNavigate(activeTrialId ? 'EVENT' : 'HOME');
     setActiveTrialId(null);
   };
 
@@ -403,54 +500,14 @@ export default function App() {
     return true;
   };
 
-  const handleRequestRewardedBooster = (key: 'undo' | 'shuffle' | 'extraFlask') => {
-    const i18n = createI18nValue(profile.language);
-    const labelMap = {
-      undo: i18n.t('adLabelUndo'),
-      shuffle: i18n.t('adLabelShuffle'),
-      extraFlask: i18n.t('adLabelExtraFlask'),
-    };
-    setAdRequest({
-      kind: 'rewarded_booster',
-      label: labelMap[key],
-      boosterKey: key,
-    });
-    setModal('AD_SIMULATION');
-  };
-
-  const handleCompleteAd = () => {
-    if (!adRequest) return;
-    if (adRequest.kind === 'rewarded_life') {
-      setProfile((curr) => ({
-        ...curr,
-        lives: Math.min(curr.maxLives, curr.lives + 1),
-      }));
-    } else if (adRequest.kind === 'rewarded_booster' && adRequest.boosterKey) {
-      const k = adRequest.boosterKey;
-      setProfile((curr) => ({
-        ...curr,
-        boosters: { ...curr.boosters, [k]: curr.boosters[k] + 1 },
-      }));
-    } else if (adRequest.kind === 'rewarded_2x_coins' && victorySnap && !victorySnap.doubled) {
-      setProfile((curr) => ({
-        ...curr,
-        coins: curr.coins + victorySnap.coinsEarned,
-      }));
-      setVictorySnap((v) => (v ? { ...v, doubled: true } : v));
-      setModal('VICTORY');
-      setAdRequest(null);
-      return;
-    } else if (adRequest.kind === 'rewarded_continue') {
-      setActiveLevel((curr) => ({
-        ...curr,
-        bottles: addExtraFlaskBooster(curr.bottles),
-      }));
-      setModal('NONE');
-      setAdRequest(null);
-      return;
-    }
-    setAdRequest(null);
-    setModal('NONE');
+  const handleBuyInGameBooster = (key: 'undo' | 'shuffle' | 'extraFlask'): boolean => {
+    const cost = IN_GAME_BOOSTER_COSTS[key];
+    if (profile.coins < cost) return false;
+    setProfile((curr) => ({
+      ...curr,
+      coins: curr.coins - cost,
+    }));
+    return true;
   };
 
   const handleBrewRecipe = (recipe: AlembicRecipe) => {
@@ -459,7 +516,7 @@ export default function App() {
       (Object.keys(recipe.cost) as IngredientId[]).forEach((k) => {
         nextIngredients[k] = Math.max(0, nextIngredients[k] - recipe.cost[k]);
       });
-      return {
+      const updated: PlayerProfile = {
         ...curr,
         ingredients: nextIngredients,
         boosters: {
@@ -467,6 +524,7 @@ export default function App() {
           [recipe.rewardKey]: curr.boosters[recipe.rewardKey] + recipe.rewardAmount,
         },
       };
+      return syncAlembicSeenAfterBrew(updated);
     });
     playBottleComplete(profile.soundEnabled);
   };
@@ -490,6 +548,85 @@ export default function App() {
     playBottleComplete(profile.soundEnabled);
   };
 
+  const handleClaimCgReward = (cgId: OutcomeCgId): number => {
+    const res = claimCgAchievementReward(profile, cgId);
+    if (!res.claimed) return 0;
+    setProfile((curr) => markAchievementsSeen(claimCgAchievementReward(curr, cgId).profile));
+    playBottleComplete(profile.soundEnabled, 1);
+    return res.coinsGranted;
+  };
+
+  const handleClaimAllCgRewards = (): number => {
+    const res = claimAllCgAchievementRewards(profile);
+    if (res.coinsGranted <= 0) return 0;
+    setProfile((curr) => markAchievementsSeen(claimAllCgAchievementRewards(curr).profile));
+    playBottleComplete(profile.soundEnabled, 2);
+    return res.coinsGranted;
+  };
+
+  const handleBuyEssencePouch = (): IngredientId[] | null => {
+    if (profile.coins < ESSENCE_POUCH_COIN_COST) return null;
+    const rolled: IngredientId[] = Array.from({ length: 3 }, () => {
+      const idx = Math.floor(Math.random() * ALL_INGREDIENTS.length);
+      return ALL_INGREDIENTS[idx];
+    });
+    setProfile((curr) => {
+      const nextIngredients = { ...curr.ingredients };
+      rolled.forEach((id) => {
+        nextIngredients[id] += 1;
+      });
+      return {
+        ...curr,
+        coins: curr.coins - ESSENCE_POUCH_COIN_COST,
+        ingredients: nextIngredients,
+      };
+    });
+    playBottleComplete(profile.soundEnabled);
+    return rolled;
+  };
+
+  const handleBuySingleLife = () => {
+    if (profile.coins < SINGLE_LIFE_COIN_COST || profile.lives >= profile.maxLives) return;
+    setProfile((curr) => ({
+      ...curr,
+      coins: curr.coins - SINGLE_LIFE_COIN_COST,
+      lives: Math.min(curr.maxLives, curr.lives + 1),
+    }));
+    playPickupClink(profile.soundEnabled);
+    if (modal === 'NO_LIVES') {
+      setModal('NONE');
+    }
+  };
+
+  const handleRefillAllLives = () => {
+    if (profile.coins < FULL_LIVES_COIN_COST || profile.lives >= profile.maxLives) return;
+    setProfile((curr) => ({
+      ...curr,
+      coins: curr.coins - FULL_LIVES_COIN_COST,
+      lives: curr.maxLives,
+    }));
+    playBottleComplete(profile.soundEnabled);
+    if (modal === 'NO_LIVES') {
+      setModal('NONE');
+    }
+  };
+
+  const handleOpenDailyRewardFromHome = () => {
+    if (isDailyRewardAvailable(profile.lastDailyRewardDate)) {
+      if (!pendingDailyReward) {
+        const nextStreak = computeNextDailyStreak(
+          profile.lastDailyRewardDate,
+          profile.dailyLoginStreak
+        );
+        setPendingDailyReward(rollDailyLoginReward(nextStreak));
+      }
+    } else {
+      setPendingDailyReward(null);
+    }
+    setProfile((curr) => markDailyRewardSeen(curr));
+    setModal('DAILY_REWARD');
+  };
+
   const handleClaimDailyReward = () => {
     if (!pendingDailyReward) {
       setModal('NONE');
@@ -497,10 +634,92 @@ export default function App() {
     }
     const claimed = pendingDailyReward;
     setProfile((curr) => applyDailyLoginReward(curr, claimed));
-    playBottleComplete(profile.soundEnabled, 1);
-    triggerSemanticHaptic(profile.hapticsEnabled, 'victory1');
+    playBottleComplete(profile.soundEnabled, claimed.kind === 'grand' ? 2 : 1);
+    triggerSemanticHaptic(
+      profile.hapticsEnabled,
+      claimed.kind === 'grand' ? 'victory3' : 'victory1'
+    );
     setPendingDailyReward(null);
+  };
+
+  const handleCompleteAd = () => {
+    if (!adRequest) return;
+    if (adRequest.kind === 'interstitial_next_level') {
+      const nextLvl = adRequest.pendingNextLevel ?? activeLevel.levelNumber + 1;
+      setAdRequest(null);
+      startCampaignLevel(nextLvl);
+      return;
+    }
+    if (adRequest.kind === 'rewarded_life') {
+      setProfile((curr) => ({
+        ...curr,
+        lives: Math.min(curr.maxLives, curr.lives + 1),
+      }));
+    } else if (adRequest.kind === 'rewarded_2x_coins' && victorySnap && !victorySnap.doubled) {
+      setProfile((curr) => ({
+        ...curr,
+        coins: curr.coins + victorySnap.coinsEarned,
+      }));
+      setVictorySnap((v) => (v ? { ...v, doubled: true } : v));
+      setModal('VICTORY');
+      setAdRequest(null);
+      return;
+    } else if (adRequest.kind === 'rewarded_continue') {
+      setActiveLevel((curr) => ({
+        ...curr,
+        bottles: addExtraFlaskBooster(curr.bottles),
+      }));
+      setModal('NONE');
+      setAdRequest(null);
+      return;
+    }
+    setAdRequest(null);
     setModal('NONE');
+  };
+
+  const handleConfirmRemoveAds = () => {
+    setProfile((curr) => applyRemoveAdsPurchase(curr));
+    clearsSinceInterstitialRef.current = 0;
+    playBottleComplete(profile.soundEnabled, 1);
+
+    // If purchased directly from an interstitial intermission, jump straight into the pending level
+    if (adRequest?.isInterstitial && adRequest.pendingNextLevel) {
+      const targetLvl = adRequest.pendingNextLevel;
+      setAdRequest(null);
+      startCampaignLevel(targetLvl);
+      return;
+    }
+    setModal('NONE');
+  };
+
+  const handleNextLevelFromVictory = () => {
+    if (activeTrialId) {
+      setModal('NONE');
+      handleNavigate('EVENT');
+      setActiveTrialId(null);
+      return;
+    }
+    const nextLvl = activeLevel.levelNumber + 1;
+    const pacing = evaluateInterstitialPacing({
+      adsRemoved: profile.adsRemoved,
+      clearedLevelNumber: activeLevel.levelNumber,
+      clearsSinceLastInterstitial: clearsSinceInterstitialRef.current,
+      isTrial: false,
+    });
+    clearsSinceInterstitialRef.current = pacing.nextCounter;
+
+    if (pacing.shouldShow) {
+      const i18n = createI18nValue(profile.language);
+      setAdRequest({
+        kind: 'interstitial_next_level',
+        label: i18n.t('interstitialTitle'),
+        isInterstitial: true,
+        pendingNextLevel: nextLvl,
+      });
+      setModal('AD_SIMULATION');
+      return;
+    }
+    startCampaignLevel(nextLvl);
   };
 
   return (
@@ -513,9 +732,11 @@ export default function App() {
               profile={profile}
               nowMs={nowMs}
               onPlayLevel={startCampaignLevel}
-              onNavigate={setScreen}
+              onNavigate={handleNavigate}
               onOpenSettings={() => setModal('SETTINGS')}
               onOpenLivesModal={() => setModal('NO_LIVES')}
+              onOpenDailyReward={handleOpenDailyRewardFromHome}
+              onOpenRemoveAds={() => setModal('REMOVE_ADS_CONFIRM')}
             />
           )}
 
@@ -533,14 +754,9 @@ export default function App() {
               }
               onRestartRequest={() => setModal('PAUSED')}
               onConsumeBooster={handleConsumeBooster}
-              onRequestRewardedBooster={handleRequestRewardedBooster}
+              onBuyInGameBooster={handleBuyInGameBooster}
               onVictory={handleVictory}
               onGiveUp={handleGiveUp}
-              onSelectBottleStyle={(bottleStyle) => {
-                playPickupClink(profile.soundEnabled);
-                setProfile((curr) => ({ ...curr, bottleStyle }));
-              }}
-              onOpenBottleCompare={() => setModal('BOTTLE_COMPARE')}
             />
           )}
 
@@ -581,28 +797,19 @@ export default function App() {
                 }));
                 playPickupClink(profile.soundEnabled);
               }}
-              onRefillLives={() => {
-                if (profile.coins < 150 || profile.lives >= profile.maxLives) return;
-                setProfile((curr) => ({
-                  ...curr,
-                  coins: curr.coins - 150,
-                  lives: curr.maxLives,
-                }));
-                playBottleComplete(profile.soundEnabled);
-              }}
-              onPurchaseRemoveAds={() => {
-                setProfile((curr) => ({ ...curr, adsRemoved: true }));
-                playBottleComplete(profile.soundEnabled);
-              }}
+              onBuyEssencePouch={handleBuyEssencePouch}
+              onBuySingleLife={handleBuySingleLife}
+              onRefillLives={handleRefillAllLives}
+              onOpenRemoveAds={() => setModal('REMOVE_ADS_CONFIRM')}
               onBack={() => setScreen('HOME')}
             />
           )}
 
-          {screen === 'SALONS' && (
-            <SalonsComingSoonView
-              coins={profile.coins}
-              soundEnabled={profile.soundEnabled}
-              hapticsEnabled={profile.hapticsEnabled}
+          {screen === 'ACHIEVEMENTS' && (
+            <AchievementsView
+              profile={profile}
+              onClaimCgReward={handleClaimCgReward}
+              onClaimAllCgRewards={handleClaimAllCgRewards}
               onBack={() => setScreen('HOME')}
             />
           )}
@@ -615,54 +822,42 @@ export default function App() {
             defeatSnapshot={defeatSnap}
             adRequest={adRequest}
             dailyReward={pendingDailyReward}
-            onCloseModal={() => setModal('NONE')}
+            onCloseModal={() => {
+              if (modal === 'REMOVE_ADS_CONFIRM' && adRequest?.isInterstitial) {
+                setModal('AD_SIMULATION');
+                return;
+              }
+              setModal('NONE');
+            }}
             onClaimDailyReward={handleClaimDailyReward}
             onResume={() => setModal('NONE')}
             onRestartConfirm={handleRestartConfirm}
             onExitToHome={handleExitToHome}
-            onNextLevel={() => {
-              if (activeTrialId) {
-                setModal('NONE');
-                setScreen('EVENT');
-                setActiveTrialId(null);
-              } else {
-                startCampaignLevel(activeLevel.levelNumber + 1);
-              }
-            }}
+            onNextLevel={handleNextLevelFromVictory}
+            onContinueAfterDefeat={handleContinueAfterDefeat}
             onRetryAfterDefeat={handleRetryAfterDefeat}
             onTriggerAd={(req) => {
               setAdRequest(req);
               setModal('AD_SIMULATION');
             }}
             onCompleteAd={handleCompleteAd}
-            onRefillLivesWithCoins={() => {
-              if (profile.coins < 150) return;
-              setProfile((curr) => ({
-                ...curr,
-                coins: curr.coins - 150,
-                lives: curr.maxLives,
-              }));
-              setModal('NONE');
-            }}
+            onOpenRemoveAds={() => setModal('REMOVE_ADS_CONFIRM')}
+            onConfirmRemoveAds={handleConfirmRemoveAds}
+            onBuySingleLife={handleBuySingleLife}
+            onRefillLivesWithCoins={handleRefillAllLives}
             onToggleSetting={(key) =>
               setProfile((curr) => ({ ...curr, [key]: !curr[key] }))
             }
             onSelectLanguage={(language) =>
               setProfile((curr) => ({ ...curr, language }))
             }
-            onSelectBottleStyle={(bottleStyle) => {
-              playPickupClink(profile.soundEnabled);
-              setProfile((curr) => ({ ...curr, bottleStyle }));
-            }}
-            onOpenBottleCompare={() => setModal('BOTTLE_COMPARE')}
-            onOpenCgGallery={() => setModal('CG_GALLERY')}
-            onPurchaseRemoveAds={() => {
-              setProfile((curr) => ({ ...curr, adsRemoved: true }));
-              playBottleComplete(profile.soundEnabled);
-            }}
             onResetSave={() => {
               setLevelFailCounts({});
               setPendingDailyReward(null);
+              setAdRequest(null);
+              setActiveTrialId(null);
+              setActiveLevel(getLevelSpec(1));
+              clearsSinceInterstitialRef.current = 0;
               setProfile({ ...DEFAULT_PROFILE, lastLifeTimestamp: Date.now() });
               setModal('NONE');
               setScreen('HOME');

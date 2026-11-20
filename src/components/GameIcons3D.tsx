@@ -43,10 +43,6 @@ export const CastleHome3DIcon: React.FC<IconProps> = ({ className = 'w-11 h-11' 
   <StaticUiIcon src="/assets/ui/icon-castle.png" className={className} />
 );
 
-export const Salons3DIcon: React.FC<IconProps> = ({ className = 'w-8 h-8' }) => (
-  <StaticUiIcon src="/assets/ui/icon-salons.png" className={className} />
-);
-
 export const Cauldron3DIcon: React.FC<IconProps> = ({ className = 'w-8 h-8' }) => (
   <StaticUiIcon src="/assets/ui/icon-cauldron.png" className={className} />
 );

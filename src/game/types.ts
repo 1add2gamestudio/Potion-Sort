@@ -115,6 +115,11 @@ export type AppScreen = 'HOME' | 'PLAYING' | 'LEVEL_MAP' | 'ALEMBIC' | 'SHOP' | 
 
 export type BottleStyleId = 'starlight' | 'royal_crown' | 'crystal_prism' | 'botanical_brass';
 
+export type LanguageCode = 'zh' | 'en';
+
+export type CgOutcome = 'victory' | 'defeat';
+export type CgTier = 1 | 2 | 3;
+
 export type PlayModal =
   | 'NONE'
   | 'PAUSED'
@@ -123,7 +128,8 @@ export type PlayModal =
   | 'NO_LIVES'
   | 'SETTINGS'
   | 'AD_SIMULATION'
-  | 'BOTTLE_COMPARE';
+  | 'BOTTLE_COMPARE'
+  | 'CG_GALLERY';
 
 export interface BoostersInventory {
   undo: number;
@@ -151,8 +157,10 @@ export interface PlayerProfile {
   claimedEventMilestones: number[];
   adsRemoved: boolean;
   soundEnabled: boolean;
+  bgmEnabled: boolean;
   hapticsEnabled: boolean;
   colorSymbolsEnabled: boolean;
   bottleStyle: BottleStyleId;
+  language: LanguageCode;
   completedTrials: string[];
 }

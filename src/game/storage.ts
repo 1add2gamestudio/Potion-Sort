@@ -25,9 +25,11 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   claimedEventMilestones: [],
   adsRemoved: false,
   soundEnabled: true,
+  bgmEnabled: true,
   hapticsEnabled: true,
   colorSymbolsEnabled: false,
   bottleStyle: 'starlight',
+  language: 'zh',
   completedTrials: [],
 };
 
@@ -70,6 +72,9 @@ export function loadProfile(): PlayerProfile {
     const merged: PlayerProfile = {
       ...DEFAULT_PROFILE,
       ...parsed,
+      bgmEnabled:
+        typeof parsed.bgmEnabled === 'boolean' ? parsed.bgmEnabled : DEFAULT_PROFILE.bgmEnabled,
+      language: parsed.language === 'en' || parsed.language === 'zh' ? parsed.language : 'zh',
       bottleStyle:
         parsed.bottleStyle && validStyles.includes(parsed.bottleStyle)
           ? parsed.bottleStyle

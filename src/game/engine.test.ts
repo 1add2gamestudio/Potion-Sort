@@ -35,18 +35,45 @@ test('Levels 1 through 30 are deterministic and 100% solvable without boosters',
   }
 });
 
-test('Obstacles introduce progressively at milestone levels and trials are solvable', () => {
+test('Plan B Golden Wave sawtooth difficulty curve spikes at L2, dips at L3, and introduces obstacles on schedule', () => {
+  const lv1 = getLevelSpec(1);
+  const lv2 = getLevelSpec(2);
+  const lv3 = getLevelSpec(3);
+  const lv4 = getLevelSpec(4);
+  const lv5 = getLevelSpec(5);
   const lv6 = getLevelSpec(6);
-  assert.ok(lv6.bottles.some((b) => b.layers.some((l) => l.hidden)), 'Lv 6 has ? layers');
+  const lv10 = getLevelSpec(10);
+  const lv14 = getLevelSpec(14);
 
-  const lv12 = getLevelSpec(12);
-  assert.ok(lv12.bottles.some((b) => b.obstacle.type === 'cork'), 'Lv 12 has cork');
+  // Sawtooth color progression: L1(2) -> L2(5 spike!) -> L3(4 relief) -> L4(5 ramp) -> L5(6 hard) -> L6(4 cork relief)
+  assert.equal(lv1.colorCount, 2);
+  assert.equal(lv2.colorCount, 5);
+  assert.equal(lv3.colorCount, 4);
+  assert.equal(lv4.colorCount, 5);
+  assert.equal(lv5.colorCount, 6);
+  assert.equal(lv5.difficulty, 'hard');
+  assert.equal(lv6.colorCount, 4);
+  assert.equal(lv10.colorCount, 7);
+  assert.equal(lv10.difficulty, 'super_hard');
 
-  const lv18 = getLevelSpec(18);
-  assert.ok(lv18.bottles.some((b) => b.obstacle.type === 'crate'), 'Lv 18 has crate');
+  // Verify L2 has genuine puzzle depth after L1 tutorial
+  const lv2Sol = solveLevel(lv2.bottles, 15000);
+  assert.ok(lv2Sol && lv2Sol.length >= 14, `Level 2 should be a real spike (>=14 moves), got ${lv2Sol?.length}`);
 
-  const lv24 = getLevelSpec(24);
-  assert.ok(lv24.bottles.some((b) => b.obstacle.type === 'curtain'), 'Lv 24 has curtain');
+  // Rich mystery '?' black-layer density across every level for blind-box excitement
+  const countHidden = (spec: ReturnType<typeof getLevelSpec>) =>
+    spec.bottles.reduce((sum, b) => sum + b.layers.filter((l) => l.hidden).length, 0);
+  assert.ok(countHidden(lv1) >= 1, 'Lv 1 introduces a surprise mystery layer');
+  assert.ok(countHidden(lv2) >= 8, `Lv 2 should have abundant mystery layers (>=8), got ${countHidden(lv2)}`);
+  assert.ok(countHidden(lv3) >= 6, `Lv 3 should keep rich mystery layers (>=6), got ${countHidden(lv3)}`);
+  assert.ok(countHidden(lv5) >= 12, `Lv 5 Hard should have deep mystery layers (>=12), got ${countHidden(lv5)}`);
+  assert.ok(countHidden(lv10) >= 15, `Lv 10 Super Hard should have deep mystery layers (>=15), got ${countHidden(lv10)}`);
+
+  // Milestone obstacles introduced cleanly on Plan B cadence
+  assert.ok(lv4.bottles.some((b) => b.layers.some((l) => l.hidden)), 'Lv 4 has deep ? layers');
+  assert.ok(lv6.bottles.some((b) => b.obstacle.type === 'cork'), 'Lv 6 introduces cork');
+  assert.ok(lv10.bottles.some((b) => b.obstacle.type === 'crate'), 'Lv 10 introduces crate');
+  assert.ok(lv14.bottles.some((b) => b.obstacle.type === 'curtain'), 'Lv 14 introduces curtain');
 
   for (const trial of EVENT_TRIALS) {
     const spec = getTrialLevelSpec(trial.id);

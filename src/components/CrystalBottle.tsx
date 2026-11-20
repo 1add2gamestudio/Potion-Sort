@@ -332,7 +332,12 @@ export const CrystalBottle: React.FC<CrystalBottleProps> = ({
   const renderLiquids = () => {
     if (pourSourceOverride) {
       const { layersBefore, pouredCount, tiltDeg, drainRatio } = pourSourceOverride;
-      const t = Math.min(1, Math.abs(tiltDeg) / 78);
+      const absTilt = Math.abs(tiltDeg);
+      const t = Math.min(1, absTilt / 72);
+      const rad = (absTilt * Math.PI) / 180;
+      const cosR = Math.cos(rad);
+      const sinR = Math.sin(rad);
+
       const unpouredCount = Math.max(0, layersBefore.length - pouredCount);
       const pouredFraction = Math.max(0, 1 - drainRatio);
       const remainingFloat = unpouredCount + pouredCount * pouredFraction;
@@ -341,11 +346,20 @@ export const CrystalBottle: React.FC<CrystalBottleProps> = ({
         return null;
       }
 
-      const vBottom = BASE_BOTTOM_Y * (1 - t) + 122.5 * t;
+      // True lowest cavity wall in the gravity-aligned frame (works cleanly past 90 deg; clipped by innerClip)
+      const vBottom =
+        88 + Math.max(0, 65.5 * cosR) + 22.5 * sinR + Math.max(0, -67 * cosR) + 6;
       const vTopUpright = BASE_BOTTOM_Y - SLOT_HEIGHT * remainingFloat;
+
+      // Exact mouth lip height in gravity frame so actively streaming liquid kisses the neck lip
+      const mouthLipY = 88 - 67 * cosR + 6.5 * sinR;
       const pouringWeight = Math.min(1, pouredFraction / 0.16);
-      const pouringSurface = 75.5 + 3.5 * drainRatio;
-      const restingTiltedSurface = 122.5 - 11.5 * unpouredCount;
+      const pouringSurface = Math.min(vBottom - 4, mouthLipY + 2.5 * drainRatio);
+      const restingSpan = Math.max(18, vBottom - mouthLipY);
+      const restingTiltedSurface = Math.max(
+        mouthLipY + 4,
+        vBottom - 6 - restingSpan * (unpouredCount / 4.2)
+      );
       const vTopTilted =
         pouringSurface * pouringWeight +
         restingTiltedSurface * (1 - pouringWeight);

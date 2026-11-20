@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Flame, Sparkles } from 'lucide-react';
+import { Flame, Sparkles, Star } from 'lucide-react';
 import {
   addExtraFlaskBooster,
   applyShuffleBooster,
@@ -10,32 +10,38 @@ import {
   hasValidMoves,
   isLevelComplete,
 } from '../game/engine';
+import { triggerSemanticHaptic, victoryHapticForTier } from '../game/haptics';
+import { useI18n } from '../game/i18n';
+import { resolveVictoryCgTier } from '../game/outcomeCg';
 import {
   playBottleComplete,
+  playCoinTick,
   playCorkPop,
   playErrorTap,
+  playObstacleUnlockSound,
   playPickupClink,
   playPourSound,
   playSealRiseChime,
+  playUiClick,
   playVictoryFanfare,
   stopPourSound,
-  triggerHaptic,
 } from '../game/sound';
 import {
-  POUR_DURATION_MS,
   buildVerticalStreamPath,
   computeMagicSortPourGeometry,
+  computePourTransform,
   evaluatePourTimeline,
+  getPourDurationMs,
   type MagicSortPourGeometry,
   type PourTimelineState,
 } from '../game/pourAnimation';
 import { SEAL_DURATION_MS, SEAL_TRIGGER_DELAY_MS } from '../game/sealAnimation';
 import {
-  POTION_COLORS,
   type Bottle,
-  type LiquidLayer,
   type BottleStyleId,
+  type CgTier,
   type LevelSpec,
+  type LiquidLayer,
   type PlayerProfile,
   type PotionColor,
 } from '../game/types';
@@ -53,6 +59,7 @@ import {
   SoundOn3DIcon,
   Undo3DIcon,
 } from './GameIcons3D';
+import { VictoryEffect } from './VictoryEffect';
 
 interface ActivePourState {
   id: number;
@@ -72,6 +79,34 @@ interface CompanionReaction {
   text: string;
 }
 
+interface ObstacleUnlockBurst {
+  id: number;
+  type: 'cork' | 'crate' | 'curtain';
+  color: PotionColor;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface VictoryFlyToken {
+  id: number;
+  kind: 'coin' | 'star';
+  startX: number;
+  startY: number;
+  midX: number;
+  midY: number;
+  endX: number;
+  endY: number;
+  delayMs: number;
+}
+
+interface VictoryEffectState {
+  stageWidth: number;
+  stageHeight: number;
+  tier: CgTier;
+}
+
 interface GameplayScreenProps {
   level: LevelSpec;
   isTrialMode: boolean;
@@ -89,20 +124,29 @@ interface GameplayScreenProps {
   onOpenBottleCompare: () => void;
 }
 
+const CRATE_SHARDS = [
+  { dx: '-34px', dy: '-30px', rot: '-145deg' },
+  { dx: '34px', dy: '-28px', rot: '155deg' },
+  { dx: '-38px', dy: '14px', rot: '-95deg' },
+  { dx: '38px', dy: '16px', rot: '115deg' },
+  { dx: '-14px', dy: '-42px', rot: '-65deg' },
+  { dx: '18px', dy: '-40px', rot: '85deg' },
+];
+
 function splitBottleRows(bottles: Bottle[]): { rows: Bottle[][]; compact: boolean } {
   const n = bottles.length;
   if (n <= 4) {
     return { rows: [bottles], compact: false };
   }
   if (n <= 8) {
-    const topCount = Math.ceil(n / 2); // 3+2, 3+3, 4+3, 4+4
+    const topCount = Math.ceil(n / 2);
     return {
       rows: [bottles.slice(0, topCount), bottles.slice(topCount)],
       compact: false,
     };
   }
   if (n <= 10) {
-    const topCount = Math.ceil(n / 2); // 5+4, 5+5
+    const topCount = Math.ceil(n / 2);
     return {
       rows: [bottles.slice(0, topCount), bottles.slice(topCount)],
       compact: true,
@@ -130,9 +174,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   onVictory,
   onGiveUp,
 }) => {
+  const { t, colorName, potionOrderName, mechanicName } = useI18n();
+
   const [bottles, setBottles] = useState<Bottle[]>(() => cloneBottles(level.bottles));
   const [history, setHistory] = useState<Bottle[][]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [shakeBottleId, setShakeBottleId] = useState<string | null>(null);
   const [moves, setMoves] = useState(0);
   const [startTimeMs, setStartTimeMs] = useState(() => Date.now());
   const [freeStreakUndos, setFreeStreakUndos] = useState(0);
@@ -140,23 +187,39 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const [sealVisuals, setSealVisuals] = useState<
     Record<string, { pending: boolean; progress: number | null }>
   >({});
+  const [obstacleBursts, setObstacleBursts] = useState<ObstacleUnlockBurst[]>([]);
+  const [victoryFlyTokens, setVictoryFlyTokens] = useState<VictoryFlyToken[]>([]);
+  const [victoryEffect, setVictoryEffect] = useState<VictoryEffectState | null>(null);
+  const [hudCoinBonus, setHudCoinBonus] = useState(0);
+  const [coinPopTick, setCoinPopTick] = useState(0);
   const [mascotCheering, setMascotCheering] = useState(false);
   const [reaction, setReaction] = useState<CompanionReaction>({
     id: 1,
     who: 'fox',
-    text: `Let's brew ${level.potionOrderName}!`,
+    text: '',
   });
+
   const wonRef = useRef(false);
+  const bottleComboRef = useRef(0);
   const pourRafRef = useRef<number | null>(null);
   const pourSeqRef = useRef(1);
+  const burstSeqRef = useRef(1);
   const cheerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cheerDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const victoryTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sealHandlesRef = useRef<
     Record<string, { timer: ReturnType<typeof setTimeout> | null; raf: number | null }>
   >({});
 
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const coinPillRef = useRef<HTMLDivElement | null>(null);
   const bottleRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const clearVictoryTimers = () => {
+    victoryTimersRef.current.forEach((id) => clearTimeout(id));
+    victoryTimersRef.current = [];
+  };
 
   const clearMascotCheerTimers = () => {
     if (cheerTimerRef.current) {
@@ -185,6 +248,15 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     }
   };
 
+  const triggerBottleShake = (bottleId: string) => {
+    if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+    setShakeBottleId(bottleId);
+    shakeTimerRef.current = setTimeout(() => {
+      setShakeBottleId(null);
+      shakeTimerRef.current = null;
+    }, 300);
+  };
+
   const cancelAllSealAnimations = () => {
     Object.values(sealHandlesRef.current).forEach((handle) => {
       if (handle.timer) clearTimeout(handle.timer);
@@ -192,6 +264,127 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     });
     sealHandlesRef.current = {};
     setSealVisuals({});
+  };
+
+  const getLayoutRectInStage = (el: HTMLElement, stageEl: HTMLElement) => {
+    let left = 0;
+    let top = 0;
+    let curr: HTMLElement | null = el;
+    while (curr && curr !== stageEl) {
+      left += curr.offsetLeft;
+      top += curr.offsetTop;
+      curr = curr.offsetParent as HTMLElement | null;
+    }
+    if (curr === stageEl) {
+      return { left, top, width: el.offsetWidth, height: el.offsetHeight };
+    }
+    const sRect = stageEl.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    return {
+      left: eRect.left - sRect.left,
+      top: eRect.top - sRect.top,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+    };
+  };
+
+  const spawnObstacleUnlockBurst = (
+    bottleId: string,
+    type: 'cork' | 'crate' | 'curtain',
+    color: PotionColor
+  ) => {
+    const stageEl = stageRef.current;
+    const targetEl = bottleRefs.current[bottleId];
+    if (!stageEl || !targetEl) return;
+
+    const rect = getLayoutRectInStage(targetEl, stageEl);
+    const id = ++burstSeqRef.current;
+    const burst: ObstacleUnlockBurst = {
+      id,
+      type,
+      color,
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height * 0.48,
+      width: rect.width,
+      height: rect.height,
+    };
+
+    setObstacleBursts((prev) => [...prev, burst]);
+    setTimeout(() => {
+      setObstacleBursts((prev) => prev.filter((item) => item.id !== id));
+    }, 520);
+  };
+
+  const launchVictoryFlyInTokens = (rewardCoins: number, soundEnabled: boolean) => {
+    const stageEl = stageRef.current;
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (!stageEl || reducedMotion) return;
+
+    const stageW = stageEl.clientWidth || 390;
+    const stageH = stageEl.clientHeight || 844;
+    const startX = stageW * 0.5;
+    const startY = stageH * 0.56;
+
+    let targetX = 88;
+    let targetY = 34;
+    if (coinPillRef.current) {
+      const r = getLayoutRectInStage(coinPillRef.current, stageEl);
+      targetX = r.left + r.width * 0.45;
+      targetY = r.top + r.height * 0.5;
+    }
+
+    const totalTokens = 7;
+    const tokens: VictoryFlyToken[] = Array.from({ length: totalTokens }, (_, idx) => {
+      const angle = ((idx / (totalTokens - 1)) - 0.5) * 2.1;
+      const spreadX = Math.sin(angle) * 68;
+      const spreadY = -24 - Math.cos(angle) * 30;
+      const jitterX = (idx - 3) * 14;
+      const jitterY = (idx % 2 === 0 ? -1 : 1) * 14;
+      return {
+        id: ++burstSeqRef.current,
+        kind: idx % 3 === 1 ? 'star' : 'coin',
+        startX: startX + jitterX,
+        startY: startY + jitterY,
+        midX: spreadX,
+        midY: spreadY,
+        endX: targetX - (startX + jitterX),
+        endY: targetY - (startY + jitterY),
+        delayMs: idx * 65,
+      };
+    });
+
+    setVictoryFlyTokens(tokens);
+
+    // Roll HUD coin preview smoothly as each token arrives
+    const coinSteps = 5;
+    const perStep = Math.max(1, Math.round(rewardCoins / coinSteps));
+    for (let i = 0; i < coinSteps; i++) {
+      const arrivalTimer = setTimeout(() => {
+        playCoinTick(soundEnabled, i);
+        setHudCoinBonus((prev) => Math.min(rewardCoins, prev + perStep));
+        setCoinPopTick((c) => c + 1);
+      }, 420 + i * 75);
+      victoryTimersRef.current.push(arrivalTimer);
+    }
+
+    const clearTimer = setTimeout(() => {
+      setVictoryFlyTokens([]);
+    }, 1250);
+    victoryTimersRef.current.push(clearTimer);
+  };
+
+  const triggerVictoryEffect = (tier: CgTier) => {
+    const stageEl = stageRef.current;
+    const stageWidth = stageEl?.clientWidth || 390;
+    const stageHeight = stageEl?.clientHeight || 844;
+    setVictoryEffect({ stageWidth, stageHeight, tier });
+
+    const cleanupTimer = setTimeout(() => {
+      setVictoryEffect(null);
+    }, 1850);
+    victoryTimersRef.current.push(cleanupTimer);
   };
 
   const triggerBottleSealCelebration = (
@@ -206,6 +399,9 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       delete sealHandlesRef.current[bottleId];
     }
 
+    const comboStep = bottleComboRef.current;
+    bottleComboRef.current += 1;
+
     const reducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -213,7 +409,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     const concurrentCount = Object.keys(sealHandlesRef.current).length;
     const durationMs = concurrentCount > 0 ? Math.round(SEAL_DURATION_MS / 1.25) : SEAL_DURATION_MS;
 
-    // Hide resting cork during the pouring tail so it never pops in before the ribbons spiral up
     setSealVisuals((prev) => ({
       ...prev,
       [bottleId]: { pending: true, progress: null },
@@ -236,13 +431,13 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           return next;
         });
         playCorkPop(soundEnabled);
-        playBottleComplete(soundEnabled);
-        triggerHaptic(hapticsEnabled, 16);
+        playBottleComplete(soundEnabled, comboStep);
+        triggerSemanticHaptic(hapticsEnabled, 'bottleSeal');
         triggerMascotCheer(1500, 0);
         return;
       }
 
-      playSealRiseChime(soundEnabled);
+      playSealRiseChime(soundEnabled, comboStep);
       const startMs = performance.now();
       let corkBeatFired = false;
 
@@ -252,8 +447,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         if (!corkBeatFired && p >= 0.72) {
           corkBeatFired = true;
           playCorkPop(soundEnabled);
-          playBottleComplete(soundEnabled);
-          triggerHaptic(hapticsEnabled, 18);
+          playBottleComplete(soundEnabled, comboStep);
+          triggerSemanticHaptic(hapticsEnabled, 'bottleSeal');
           triggerMascotCheer(1600, 0);
         }
 
@@ -299,6 +494,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       }
       stopPourSound();
       clearMascotCheerTimers();
+      clearVictoryTimers();
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
       Object.values(sealHandlesRef.current).forEach((handle) => {
         if (handle.timer) clearTimeout(handle.timer);
         if (handle.raf !== null) cancelAnimationFrame(handle.raf);
@@ -313,10 +510,16 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
   useEffect(() => {
     wonRef.current = false;
+    bottleComboRef.current = 0;
     cancelPourAnimation();
     cancelAllSealAnimations();
     clearMascotCheerTimers();
+    clearVictoryTimers();
     setMascotCheering(false);
+    setObstacleBursts([]);
+    setVictoryFlyTokens([]);
+    setVictoryEffect(null);
+    setHudCoinBonus(0);
     const fresh = cloneBottles(level.bottles);
     setBottles(fresh);
     setHistory([]);
@@ -327,8 +530,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     pushReaction(
       'fox',
       level.mechanicsIntroduced[0]
-        ? `New craft: ${level.mechanicsIntroduced[0]}!`
-        : `Order up: ${level.potionOrderName}!`
+        ? t('reactNewCraft', { name: mechanicName(level.mechanicsIntroduced[0]) })
+        : t('reactOrderUp', { name: potionOrderName(level.potionOrderName) })
     );
 
     if (profile.streak >= 1 && !isTrialMode) {
@@ -349,10 +552,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             pushReaction(
               'dragon',
               profile.streak >= 3
-                ? `Streak x${profile.streak}! ${applied} auto-pours + 1 Free Undo!`
-                : `Streak x${profile.streak}! Helped with ${applied} ${
-                    applied > 1 ? 'pours' : 'pour'
-                  }!`
+                ? t('reactStreakBoost3', { n: profile.streak, count: applied })
+                : t('reactStreakBoost', { n: profile.streak, count: applied })
             );
           }
           return nextState;
@@ -366,28 +567,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     () => !isLevelComplete(bottles) && !hasValidMoves(bottles),
     [bottles]
   );
-
-  const getLayoutRectInStage = (el: HTMLElement, stageEl: HTMLElement) => {
-    let left = 0;
-    let top = 0;
-    let curr: HTMLElement | null = el;
-    while (curr && curr !== stageEl) {
-      left += curr.offsetLeft;
-      top += curr.offsetTop;
-      curr = curr.offsetParent as HTMLElement | null;
-    }
-    if (curr === stageEl) {
-      return { left, top, width: el.offsetWidth, height: el.offsetHeight };
-    }
-    const sRect = stageEl.getBoundingClientRect();
-    const eRect = el.getBoundingClientRect();
-    return {
-      left: eRect.left - sRect.left,
-      top: eRect.top - sRect.top,
-      width: el.offsetWidth,
-      height: el.offsetHeight,
-    };
-  };
 
   const triggerMagicSortPour = (
     srcId: string,
@@ -411,7 +590,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       srcRect,
       dstRect,
       targetBeforeCount,
-      count
+      count,
+      layersBefore.length
     );
 
     if (pourRafRef.current !== null) {
@@ -422,6 +602,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     pourSeqRef.current += 1;
     const seqId = pourSeqRef.current;
     const startMs = performance.now();
+    const durationMs = getPourDurationMs(count);
 
     setActivePour({
       id: seqId,
@@ -432,17 +613,17 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       layersBefore,
       targetBeforeCount,
       geom,
-      timeline: evaluatePourTimeline(0, geom.maxTiltDeg),
+      timeline: evaluatePourTimeline(0, geom.maxTiltDeg, geom.startTiltDeg),
     });
 
     const step = (now: number) => {
-      const p = (now - startMs) / POUR_DURATION_MS;
+      const p = (now - startMs) / durationMs;
       if (p >= 1) {
         pourRafRef.current = null;
         setActivePour((curr) => (curr && curr.id === seqId ? null : curr));
         return;
       }
-      const nextTimeline = evaluatePourTimeline(p, geom.maxTiltDeg);
+      const nextTimeline = evaluatePourTimeline(p, geom.maxTiltDeg, geom.startTiltDeg);
       setActivePour((curr) =>
         curr && curr.id === seqId ? { ...curr, timeline: nextTimeline } : curr
       );
@@ -463,34 +644,27 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     if (!selectedId) {
       if (clicked.layers.length === 0 || clicked.obstacle.type !== 'none') {
         playErrorTap(profile.soundEnabled);
-        triggerHaptic(profile.hapticsEnabled, 6);
+        triggerSemanticHaptic(profile.hapticsEnabled, 'error');
+        triggerBottleShake(bottleId);
         if (clicked.obstacle.type === 'cork') {
-          pushReaction(
-            'fox',
-            `Corked! Pour ${POTION_COLORS[clicked.obstacle.requiredColor].name} on top first.`
-          );
+          pushReaction('fox', t('reactCorkLocked', { color: colorName(clicked.obstacle.requiredColor) }));
         } else if (clicked.obstacle.type === 'crate') {
-          pushReaction(
-            'dragon',
-            `Locked crate! Seal a ${POTION_COLORS[clicked.obstacle.lockColor].name} flask.`
-          );
+          pushReaction('dragon', t('reactCrateLocked', { color: colorName(clicked.obstacle.lockColor) }));
         } else if (clicked.obstacle.type === 'curtain') {
-          pushReaction(
-            'fox',
-            `Velvet curtain! Seal ${POTION_COLORS[clicked.obstacle.unlockColor].name} to reveal.`
-          );
+          pushReaction('fox', t('reactCurtainLocked', { color: colorName(clicked.obstacle.unlockColor) }));
         }
         return;
       }
 
       playPickupClink(profile.soundEnabled);
-      triggerHaptic(profile.hapticsEnabled, 8);
+      triggerSemanticHaptic(profile.hapticsEnabled, 'pickup');
       setSelectedId(bottleId);
       return;
     }
 
     if (selectedId === bottleId) {
       playPickupClink(profile.soundEnabled);
+      triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
       setSelectedId(null);
       return;
     }
@@ -515,7 +689,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         );
 
         playPourSound(profile.soundEnabled, outcome.pouredCount);
-        triggerHaptic(profile.hapticsEnabled, 14);
+        triggerSemanticHaptic(profile.hapticsEnabled, 'pour');
 
         if (outcome.completedTarget) {
           triggerBottleSealCelebration(
@@ -526,34 +700,65 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         }
 
         if (outcome.unlockedCork) {
-          setTimeout(() => playCorkPop(profile.soundEnabled), 140);
-          pushReaction('dragon', 'Pop! Cork unsealed & glowing!');
+          setTimeout(() => {
+            playObstacleUnlockSound(profile.soundEnabled, 'cork');
+            triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
+            spawnObstacleUnlockBurst(clicked.id, 'cork', outcome.pouredColor);
+          }, 140);
+          pushReaction('dragon', t('reactCorkPopped'));
         } else if (outcome.unlockedObstacles.length > 0) {
+          const unlockedList = outcome.unlockedObstacles;
+          setTimeout(() => {
+            triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
+            unlockedList.forEach((obs, idx) => {
+              if (idx === 0) {
+                playObstacleUnlockSound(profile.soundEnabled, obs.type);
+              }
+              spawnObstacleUnlockBurst(obs.bottleId, obs.type, obs.color);
+            });
+          }, 260);
           pushReaction(
             'fox',
-            outcome.unlockedObstacles.some((o) => o.type === 'curtain')
-              ? 'Flask corked & curtain lifted!'
-              : 'Flask corked & crate unlocked!'
+            unlockedList.some((o) => o.type === 'curtain')
+              ? t('reactCurtainLifted')
+              : t('reactCrateUnlocked')
           );
         } else if (outcome.completedTarget) {
-          pushReaction('dragon', `Corked! ${POTION_COLORS[outcome.pouredColor].name} sealed!`);
+          pushReaction('dragon', t('reactBottleSealed', { color: colorName(outcome.pouredColor) }));
         } else if (outcome.revealedHidden) {
-          pushReaction('fox', 'Mystic sediment revealed!');
+          pushReaction('fox', t('reactHiddenRevealed'));
         }
 
         if (isLevelComplete(outcome.bottles)) {
           wonRef.current = true;
-          pushReaction('dragon', `${level.potionOrderName} complete!`);
+          pushReaction('dragon', t('reactLevelComplete', { name: potionOrderName(level.potionOrderName) }));
           const elapsedSec = Math.max(1, Math.round((Date.now() - startTimeMs) / 1000));
-          setTimeout(() => {
-            playVictoryFanfare(profile.soundEnabled);
-            triggerHaptic(profile.hapticsEnabled, 30);
+          const victoryTier = resolveVictoryCgTier({
+            streakAfterWin: isTrialMode ? profile.streak : profile.streak + 1,
+            difficulty: level.difficulty,
+            isTrial: isTrialMode,
+          });
+          const flyStartDelay = outcome.completedTarget ? 920 : 420;
+          const modalOpenDelay = flyStartDelay + 820;
+
+          const flyTimer = setTimeout(() => {
+            playVictoryFanfare(profile.soundEnabled, victoryTier);
+            triggerSemanticHaptic(profile.hapticsEnabled, victoryHapticForTier(victoryTier));
+            triggerMascotCheer(1900, 0);
+            triggerVictoryEffect(victoryTier);
+            launchVictoryFlyInTokens(isTrialMode ? 60 : level.rewardCoins, profile.soundEnabled);
+          }, flyStartDelay);
+
+          const doneTimer = setTimeout(() => {
+            setHudCoinBonus(0);
             onVictory({
               moves: moves + 1,
               elapsedSec,
               bottlesCount: level.colorCount,
             });
-          }, outcome.completedTarget ? 1520 : 950);
+          }, modalOpenDelay);
+
+          victoryTimersRef.current.push(flyTimer, doneTimer);
         }
         return;
       }
@@ -561,10 +766,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
     if (clicked.layers.length > 0 && clicked.obstacle.type === 'none') {
       playPickupClink(profile.soundEnabled);
+      triggerSemanticHaptic(profile.hapticsEnabled, 'pickup');
       setSelectedId(clicked.id);
     } else {
       playErrorTap(profile.soundEnabled);
-      triggerHaptic(profile.hapticsEnabled, 6);
+      triggerSemanticHaptic(profile.hapticsEnabled, 'error');
+      triggerBottleShake(bottleId);
       setSelectedId(null);
     }
   };
@@ -584,7 +791,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setBottles(prev);
     setSelectedId(null);
     playPickupClink(profile.soundEnabled);
-    pushReaction('fox', 'Rewound that pour!');
+    triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+    pushReaction('fox', t('reactUndoDone'));
   };
 
   const handleShuffle = () => {
@@ -598,15 +806,18 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setHistory((h) => [...h, cloneBottles(bottles)]);
     setBottles((curr) => applyShuffleBooster(curr, Date.now()));
     setSelectedId(null);
-    playPickupClink(profile.soundEnabled);
-    pushReaction('dragon', 'Whoosh! Open flasks remixed!');
+    playObstacleUnlockSound(profile.soundEnabled, 'curtain');
+    triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
+    pushReaction('dragon', t('reactShuffleDone'));
   };
 
   const handleAddFlask = () => {
     if (wonRef.current) return;
     const extraCount = bottles.filter((b) => b.isExtra).length;
     if (extraCount >= 2) {
-      pushReaction('fox', 'Max +2 spare flasks on the shelf!');
+      playErrorTap(profile.soundEnabled);
+      triggerSemanticHaptic(profile.hapticsEnabled, 'error');
+      pushReaction('fox', t('reactMaxExtraFlasks'));
       return;
     }
     if (!onConsumeBooster('extraFlask')) {
@@ -616,23 +827,23 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     cancelPourAnimation();
     setBottles((curr) => addExtraFlaskBooster(curr));
     setSelectedId(null);
-    playBottleComplete(profile.soundEnabled);
-    pushReaction('dragon', 'Brought a fresh crystal flask!');
+    playBottleComplete(profile.soundEnabled, 0);
+    triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
+    pushReaction('dragon', t('reactExtraFlaskAdded'));
   };
 
   const difficultyLabel =
     level.difficulty === 'super_hard'
-      ? 'SUPER HARD'
+      ? t('diffSuperHard')
       : level.difficulty === 'hard'
-      ? 'HARD'
+      ? t('diffHard')
       : null;
 
   const { rows, compact } = useMemo(() => splitBottleRows(bottles), [bottles]);
   const totalUndoCount = profile.boosters.undo + freeStreakUndos;
 
   const stageImage = '/src/assets/images/stage_c_fullwidth_1794988696753.jpg';
-
-  const stageAlt = 'Wide storybook oak alcove apothecary shelves in the sunlit cottage';
+  const stageAlt = t('gameSubtitle');
 
   const atmosphereOverlay =
     level.difficulty === 'super_hard'
@@ -646,7 +857,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     if (totalRows === 2) {
       return rowIdx === 0 ? 46.0 : 24.8;
     }
-    // 3 rows when extra flasks expand a dense board
     const bottom = 21.8;
     const step = 16.5;
     return bottom + (totalRows - 1 - rowIdx) * step;
@@ -663,46 +873,53 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       {rowBottles.map((bottle) => {
         const isSource = activePour?.sourceId === bottle.id;
         const isTarget = activePour?.targetId === bottle.id;
-        const pourSourceOverride = isSource && activePour
-          ? {
-              layersBefore: activePour.layersBefore,
-              pouredCount: activePour.count,
-              flyX: activePour.geom.flyX * activePour.timeline.moveProgress,
-              flyY: activePour.geom.flyY * activePour.timeline.moveProgress,
-              tiltDeg: activePour.timeline.tiltDeg,
-              drainRatio: activePour.timeline.drainRatio,
-            }
-          : null;
-        const pourFillOverride = isTarget && activePour
-          ? {
-              beforeCount: activePour.targetBeforeCount,
-              pouredCount: activePour.count,
-              fillRatio: activePour.timeline.fillRatio,
-              isStreaming:
-                activePour.timeline.streamTip >= 0.94 &&
-                activePour.timeline.streamCut < 0.75,
-            }
-          : null;
+        const pourSourceOverride =
+          isSource && activePour
+            ? (() => {
+                const tr = computePourTransform(activePour.geom, activePour.timeline);
+                return {
+                  layersBefore: activePour.layersBefore,
+                  pouredCount: activePour.count,
+                  flyX: tr.flyX,
+                  flyY: tr.flyY,
+                  tiltDeg: tr.tiltDeg,
+                  drainRatio: activePour.timeline.drainRatio,
+                };
+              })()
+            : null;
+        const pourFillOverride =
+          isTarget && activePour
+            ? {
+                beforeCount: activePour.targetBeforeCount,
+                pouredCount: activePour.count,
+                fillRatio: activePour.timeline.fillRatio,
+                isStreaming:
+                  activePour.timeline.streamTip >= 0.94 &&
+                  activePour.timeline.streamCut < 0.75,
+              }
+            : null;
 
         const sealState = sealVisuals[bottle.id];
+        const isShaking = shakeBottleId === bottle.id;
 
         return (
-          <CrystalBottle
-            key={bottle.id}
-            bottle={bottle}
-            bottleStyle={profile.bottleStyle}
-            selected={selectedId === bottle.id}
-            pourSourceOverride={pourSourceOverride}
-            pourFillOverride={pourFillOverride}
-            sealProgress={sealState?.progress ?? null}
-            sealPending={Boolean(sealState?.pending)}
-            colorSymbolsEnabled={profile.colorSymbolsEnabled}
-            compact={compact}
-            onSelect={handleSelectBottle}
-            buttonRef={(el) => {
-              bottleRefs.current[bottle.id] = el;
-            }}
-          />
+          <div key={bottle.id} className={isShaking ? 'animate-bottle-error-shake' : ''}>
+            <CrystalBottle
+              bottle={bottle}
+              bottleStyle={profile.bottleStyle}
+              selected={selectedId === bottle.id}
+              pourSourceOverride={pourSourceOverride}
+              pourFillOverride={pourFillOverride}
+              sealProgress={sealState?.progress ?? null}
+              sealPending={Boolean(sealState?.pending)}
+              colorSymbolsEnabled={profile.colorSymbolsEnabled}
+              compact={compact}
+              onSelect={handleSelectBottle}
+              buttonRef={(el) => {
+                bottleRefs.current[bottle.id] = el;
+              }}
+            />
+          </div>
         );
       })}
     </div>
@@ -729,9 +946,13 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       topY,
       botY,
       timeline.streamCut,
-      timeline.streamTip
+      timeline.streamTip,
+      timeline.streamFlow
     );
     const pal = LIQUID_3D_PALETTES[color];
+    const splashPulse = 0.85 + 0.32 * Math.sin(timeline.pourProgress * Math.PI * 6);
+    const dropHopA = Math.abs(Math.sin(timeline.pourProgress * Math.PI * 4.5));
+    const dropHopB = Math.abs(Math.cos(timeline.pourProgress * Math.PI * 5.2));
 
     return {
       id,
@@ -741,16 +962,24 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       botY,
       currentSurfaceY,
       showSplash: timeline.streamTip >= 0.95 && timeline.streamCut < 0.45,
+      splashPulse,
+      dropHopA,
+      dropHopB,
       pal,
     };
   }, [activePour]);
+
+  const displayedCoins = profile.coins + hudCoinBonus;
+  const headerLevelTitle = isTrialMode
+    ? level.title
+    : t('levelCta', { n: level.levelNumber });
 
   return (
     <div
       ref={stageRef}
       className="relative w-full h-full flex flex-col justify-between overflow-hidden font-game-body select-none"
     >
-      {/* Seamless top extension slice + Cabinet background shifted down 3.2% to give mascots generous room */}
+      {/* Seamless top extension slice + Cabinet background */}
       <img
         src={stageImage}
         alt=""
@@ -774,19 +1003,29 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onPause}
-              aria-label="Pause game"
+              onClick={() => {
+                playUiClick(profile.soundEnabled);
+                triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+                onPause();
+              }}
+              aria-label={t('pauseTitle')}
               className="candy-btn-purple w-10 h-10 flex items-center justify-center cursor-pointer"
             >
               <Pause3DIcon className="w-5 h-5" />
             </button>
 
-            <div className="relative flex items-center ml-1">
+            <div
+              ref={coinPillRef}
+              key={coinPopTick}
+              className={`relative flex items-center ml-1 ${
+                coinPopTick > 0 ? 'animate-hud-coin-pop' : ''
+              }`}
+            >
               <div
-                aria-label={`Coins ${profile.coins}`}
+                aria-label={`${t('coinsLabel')} ${displayedCoins}`}
                 className="candy-pill-cream flex items-center pl-7 pr-3.5 py-1.5 text-[#5A2906] text-sm font-black font-tabular leading-none"
               >
-                <span>{profile.coins.toLocaleString()}</span>
+                <span>{displayedCoins.toLocaleString()}</span>
               </div>
               <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
                 <Coin3DIcon className="w-8 h-8 drop-shadow" />
@@ -798,8 +1037,11 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={onToggleMute}
-              aria-label={profile.soundEnabled ? 'Mute sound' : 'Unmute sound'}
+              onClick={() => {
+                triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+                onToggleMute();
+              }}
+              aria-label={profile.soundEnabled ? t('soundOn') : t('soundMuted')}
               className="candy-btn-blue w-10 h-10 flex items-center justify-center cursor-pointer"
             >
               {profile.soundEnabled ? (
@@ -811,8 +1053,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
             <button
               type="button"
-              onClick={onRestartRequest}
-              aria-label="Restart level"
+              onClick={() => {
+                playUiClick(profile.soundEnabled);
+                triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+                onRestartRequest();
+              }}
+              aria-label={t('restartLevelBtn')}
               className="candy-btn-amber w-10 h-10 flex items-center justify-center cursor-pointer"
             >
               <Restart3DIcon className="w-5 h-5" />
@@ -820,8 +1066,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
             <button
               type="button"
-              onClick={onOpenSettings}
-              aria-label="Open settings"
+              onClick={() => {
+                playUiClick(profile.soundEnabled);
+                triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+                onOpenSettings();
+              }}
+              aria-label={t('settingsTitle')}
               className="candy-btn-blue w-10 h-10 flex items-center justify-center cursor-pointer"
             >
               <Gear3DIcon className="w-6 h-6" />
@@ -829,15 +1079,15 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           </div>
         </div>
 
-        {/* Royal Purple-Gold Level Capsule (9-slice Pill) + Potion Order Ribbon */}
+        {/* Royal Purple-Gold Level Capsule + Potion Order Ribbon */}
         <div className="flex flex-col items-center">
           <div className="candy-btn-purple-pill px-7 py-2 flex items-center gap-2">
-            <span className="font-game-display text-[17px] leading-none font-bold text-[#FFE96B] game-stroke-sm">
-              {level.title}
+            <span className="font-game-display text-[17px] leading-none font-bold text-[#FFE96B] game-stroke-sm whitespace-nowrap">
+              {headerLevelTitle}
             </span>
             {difficultyLabel && (
               <span
-                className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider border ${
+                className={`px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider border whitespace-nowrap ${
                   level.difficulty === 'super_hard'
                     ? 'bg-[#E81938] border-[#FFD1D8] text-white'
                     : 'bg-[#FFBF2E] border-[#FFF5BF] text-[#4D2100]'
@@ -849,12 +1099,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           </div>
 
           <div className="mt-1 px-3 py-0.5 rounded-full bg-[#FFF8E6]/95 border-2 border-[#EFA929] shadow-sm flex items-center gap-2 text-[10px] font-black text-[#592604] font-tabular">
-            <span className="text-[#6D23E8] flex items-center gap-1">
+            <span className="text-[#6D23E8] flex items-center gap-1 whitespace-nowrap">
               <Sparkles className="w-3 h-3 text-[#EA7607]" />
-              {level.potionOrderName}
+              {potionOrderName(level.potionOrderName)}
             </span>
             <span aria-hidden="true">·</span>
-            <span>Moves {moves}</span>
+            <span className="whitespace-nowrap">{t('movesCount', { n: moves })}</span>
             <span aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-0.5 text-[#C44606]">
               <Flame className="w-3 h-3 text-[#E81938] fill-[#FF5A26]" />
@@ -863,7 +1113,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           </div>
         </div>
 
-        {/* Light Mascot Companion Bubble + 3D Stage Draft Quick-Switcher (A | B | C | Compare) */}
+        {/* Mascot Companion Bubble / Stuck Options Banner */}
         <div className="flex flex-col items-center gap-1.5 w-full">
           {stuck ? (
             <div className="animate-mascot-cheer flex items-center gap-2 px-3 py-1 rounded-full bg-[#D91634] border-2 border-[#FFE875] text-white text-xs font-black shadow-md">
@@ -873,10 +1123,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
                 referrerPolicy="no-referrer"
                 className="w-6 h-6 rounded-full border-2 border-[#FFE875] object-cover shrink-0"
               />
-              <span>No pours left!</span>
+              <span className="whitespace-nowrap">{t('noPoursLeft')}</span>
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  playUiClick(profile.soundEnabled);
+                  triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
                   onGiveUp({
                     completedBottles: bottles.filter(
                       (b) =>
@@ -884,11 +1136,11 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
                         b.layers.every((l) => !l.hidden && l.color === b.layers[0].color)
                     ).length,
                     totalBottles: level.colorCount,
-                  })
-                }
-                className="px-2.5 py-0.5 rounded-full bg-[#FFE259] text-[#4D1D00] text-[10px] font-black cursor-pointer"
+                  });
+                }}
+                className="px-2.5 py-0.5 rounded-full bg-[#FFE259] text-[#4D1D00] text-[10px] font-black cursor-pointer whitespace-nowrap"
               >
-                Options
+                {t('optionsBtn')}
               </button>
             </div>
           ) : (
@@ -902,7 +1154,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
                     ? '/src/assets/images/solstice_mascot_avatar_1794980022747.jpg'
                     : '/src/assets/images/solstice_dragon_avatar_1794985798351.jpg'
                 }
-                alt={reaction.who === 'fox' ? 'Fox alchemist companion' : 'Sky dragon companion'}
+                alt={reaction.who === 'fox' ? 'Fox alchemist' : 'Sky dragon'}
                 referrerPolicy="no-referrer"
                 className="w-6 h-6 rounded-full border-2 border-[#7126E8] object-cover shrink-0"
               />
@@ -920,9 +1172,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         onTriggerPreviewCheer={() => triggerMascotCheer(1600, 0)}
       />
 
-      {/* CALIBRATED 3D SHELF-ALIGNED BOTTLE STAGE (no z-trap so flying z-40 bottle stays above z-25 stream) */}
+      {/* CALIBRATED 3D SHELF-ALIGNED BOTTLE STAGE */}
       <div className="pointer-events-none absolute inset-0">
-        {/* Bottle Rows Seated Directly on Each Sculpted 3D Oak Surface */}
         {rows.map((rowBottles, rowIdx) => (
           <div
             key={`stage-row-${rowIdx}`}
@@ -933,6 +1184,110 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           </div>
         ))}
       </div>
+
+      {/* NON-BLOCKING OBSTACLE UNLOCK VFX OVERLAY (Cork Pop / Crate Shatter / Curtain Lift) */}
+      {obstacleBursts.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 z-[32] overflow-hidden">
+          {obstacleBursts.map((burst) => {
+            const pal = LIQUID_3D_PALETTES[burst.color];
+            return (
+              <div
+                key={burst.id}
+                className="absolute"
+                style={{ left: `${burst.x}px`, top: `${burst.y}px` }}
+              >
+                {/* Expanding golden/color shockwave ring */}
+                <span
+                  className="animate-obstacle-ring-burst absolute rounded-full border-[3px]"
+                  style={{
+                    width: `${Math.max(54, burst.width)}px`,
+                    height: `${Math.max(54, burst.width)}px`,
+                    borderColor: pal.highlight,
+                    boxShadow: `0 0 14px ${pal.innerGlow}`,
+                  }}
+                />
+
+                {/* Cork spinning pop-off */}
+                {burst.type === 'cork' && (
+                  <div
+                    className="animate-obstacle-cork-fly absolute -top-12 left-0 w-7 h-5 rounded-t-md rounded-b-sm border-2 border-[#FFF1B8] shadow-md"
+                    style={{
+                      background: 'linear-gradient(180deg, #E2A35C 0%, #9E5922 100%)',
+                    }}
+                  />
+                )}
+
+                {/* Crate wooden/gold splinters */}
+                {burst.type === 'crate' &&
+                  CRATE_SHARDS.map((shard, idx) => (
+                    <span
+                      key={idx}
+                      className="animate-obstacle-crate-shard absolute w-3.5 h-2 rounded-sm border border-[#FFF2B2] shadow"
+                      style={
+                        {
+                          background: idx % 2 === 0 ? '#D98A36' : pal.highlight,
+                          '--dx': shard.dx,
+                          '--dy': shard.dy,
+                          '--rot': shard.rot,
+                        } as React.CSSProperties
+                      }
+                    />
+                  ))}
+
+                {/* Velvet curtain shimmer roll-up */}
+                {burst.type === 'curtain' && (
+                  <div
+                    className="animate-obstacle-curtain-lift absolute -left-8 -top-10 w-16 h-20 rounded-xl border-2 border-[#FFE875]"
+                    style={{
+                      background: `linear-gradient(180deg, #7A23D6 0%, ${pal.core} 100%)`,
+                      boxShadow: '0 0 16px rgba(255, 232, 117, 0.7)',
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* VICTORY CONFETTI & STAR-BURST CELEBRATION EFFECT */}
+      {victoryEffect && (
+        <VictoryEffect
+          active
+          stageWidth={victoryEffect.stageWidth}
+          stageHeight={victoryEffect.stageHeight}
+          tier={victoryEffect.tier}
+        />
+      )}
+
+      {/* VICTORY FLY-IN COINS & STARS PARTICLE LAYER */}
+      {victoryFlyTokens.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 z-[35] overflow-hidden">
+          {victoryFlyTokens.map((tok) => (
+            <div
+              key={tok.id}
+              className="animate-victory-fly-token absolute"
+              style={
+                {
+                  left: `${tok.startX}px`,
+                  top: `${tok.startY}px`,
+                  animationDelay: `${tok.delayMs}ms`,
+                  '--mid-x': `${tok.midX}px`,
+                  '--mid-y': `${tok.midY}px`,
+                  '--end-x': `${tok.endX}px`,
+                  '--end-y': `${tok.endY}px`,
+                } as React.CSSProperties
+              }
+            >
+              {tok.kind === 'coin' ? (
+                <Coin3DIcon className="w-7 h-7 drop-shadow-[0_4px_8px_rgba(40,12,0,0.45)]" />
+              ) : (
+                <Star className="w-6 h-6 text-[#FFE875] fill-[#FFCB05] drop-shadow-[0_0_10px_rgba(255,215,64,0.95)]" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* MAGIC SORT LUMINOUS ALCHEMICAL VERTICAL LIQUID STREAM OVERLAY */}
       {verticalStream && (
@@ -965,7 +1320,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             </linearGradient>
           </defs>
 
-          {/* Soft Bioluminescent Outer Aura around Falling Potion Stream */}
           <path
             d={verticalStream.pathD}
             fill={verticalStream.pal.caustic}
@@ -973,7 +1327,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             filter={`url(#ms-stream-glow-${verticalStream.id})`}
           />
 
-          {/* Main Translucent Glowing Liquid Stream */}
           <path
             d={verticalStream.pathD}
             fill={`url(#ms-stream-grad-${verticalStream.id})`}
@@ -983,7 +1336,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             strokeLinejoin="round"
           />
 
-          {/* Crisp Incandescent White-Hot Specular Filament down Vertical Stream */}
           {verticalStream.botY > verticalStream.topY + 4 && (
             <line
               x1={verticalStream.streamX - 0.85}
@@ -997,14 +1349,13 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             />
           )}
 
-          {/* Radiant Surface Impact Cushion, Glowing Ripple & Stardust Droplets */}
           {verticalStream.showSplash && (
             <>
               <ellipse
                 cx={verticalStream.streamX}
                 cy={verticalStream.currentSurfaceY + 0.5}
-                rx="11"
-                ry="3.6"
+                rx={11 * verticalStream.splashPulse}
+                ry={3.6 * verticalStream.splashPulse}
                 fill={verticalStream.pal.innerGlow}
                 opacity="0.58"
                 filter={`url(#ms-stream-glow-${verticalStream.id})`}
@@ -1012,7 +1363,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
               <ellipse
                 cx={verticalStream.streamX}
                 cy={verticalStream.currentSurfaceY + 0.5}
-                rx="8.5"
+                rx={8.5 * verticalStream.splashPulse}
                 ry="2.6"
                 fill={verticalStream.pal.meniscusRim}
                 opacity="0.95"
@@ -1020,26 +1371,26 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
               <ellipse
                 cx={verticalStream.streamX}
                 cy={verticalStream.currentSurfaceY + 0.5}
-                rx="11.5"
-                ry="3.4"
+                rx={11.5 * verticalStream.splashPulse}
+                ry={3.3 * verticalStream.splashPulse}
                 fill="none"
                 stroke="#FFFFFF"
                 strokeWidth="1.3"
                 opacity="0.78"
               />
               <circle
-                cx={verticalStream.streamX - 6.5}
-                cy={verticalStream.currentSurfaceY - 4.2}
-                r="1.35"
+                cx={verticalStream.streamX - (5.2 + 3.2 * verticalStream.dropHopA)}
+                cy={verticalStream.currentSurfaceY - (2.4 + 4.8 * verticalStream.dropHopA)}
+                r="1.4"
                 fill="#FFFFFF"
-                opacity="0.9"
+                opacity={0.45 + 0.5 * verticalStream.dropHopA}
               />
               <circle
-                cx={verticalStream.streamX + 7.2}
-                cy={verticalStream.currentSurfaceY - 3.4}
-                r="1.1"
+                cx={verticalStream.streamX + (5.6 + 3.4 * verticalStream.dropHopB)}
+                cy={verticalStream.currentSurfaceY - (2.0 + 4.2 * verticalStream.dropHopB)}
+                r="1.15"
                 fill={verticalStream.pal.sparkle}
-                opacity="0.88"
+                opacity={0.4 + 0.52 * verticalStream.dropHopB}
               />
             </>
           )}
@@ -1054,7 +1405,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             type="button"
             onClick={handleUndo}
             disabled={history.length === 0}
-            aria-label={`Undo (${totalUndoCount} left)`}
+            aria-label={`Undo (${totalUndoCount})`}
             className="candy-btn-blue relative w-[64px] h-[58px] flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
           >
             <Undo3DIcon className="w-8 h-8" />
@@ -1068,12 +1419,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           <button
             type="button"
             onClick={handleShuffle}
-            aria-label={`Shuffle (${profile.boosters.shuffle} left)`}
+            aria-label={`Shuffle (${profile.boosters.shuffle})`}
             className="candy-btn-blue relative w-[64px] h-[58px] flex items-center justify-center cursor-pointer"
           >
             <Shuffle3DIcon className="w-8 h-8" />
             <span className="absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-[#E81938] border-2 border-white text-white text-xs font-black flex items-center justify-center shadow font-tabular">
-              {profile.boosters.shuffle > 0 ? profile.boosters.shuffle : 'Ad'}
+              {profile.boosters.shuffle > 0 ? profile.boosters.shuffle : t('boosterAdShort')}
             </span>
           </button>
 
@@ -1081,12 +1432,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           <button
             type="button"
             onClick={handleAddFlask}
-            aria-label={`Add extra flask (${profile.boosters.extraFlask} left)`}
+            aria-label={`Add extra flask (${profile.boosters.extraFlask})`}
             className="candy-btn-blue relative w-[64px] h-[58px] flex items-center justify-center cursor-pointer"
           >
             <ExtraBottle3DIcon className="w-8 h-8" />
             <span className="absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1 rounded-full bg-[#E81938] border-2 border-white text-white text-xs font-black flex items-center justify-center shadow font-tabular">
-              {profile.boosters.extraFlask > 0 ? profile.boosters.extraFlask : 'Ad'}
+              {profile.boosters.extraFlask > 0 ? profile.boosters.extraFlask : t('boosterAdShort')}
             </span>
           </button>
         </div>

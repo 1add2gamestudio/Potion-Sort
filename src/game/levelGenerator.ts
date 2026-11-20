@@ -34,6 +34,17 @@ const POTION_ORDERS: string[] = [
   'Royal Solstice Brew',
 ];
 
+export interface SawtoothLevelProfile {
+  colorCount: number;
+  difficulty: DifficultyTier;
+  mysteryBottles: number;
+  hideDepth: number;
+  hasCork: boolean;
+  hasCrate: boolean;
+  hasCurtain: boolean;
+  minSolutionMoves: number;
+}
+
 function createRng(seed: number) {
   let s = seed >>> 0;
   return () => {
@@ -42,20 +53,256 @@ function createRng(seed: number) {
   };
 }
 
-function getDifficultyForLevel(levelNumber: number): DifficultyTier {
-  if (levelNumber >= 10 && levelNumber % 10 === 0) return 'super_hard';
-  if (levelNumber >= 5 && levelNumber % 5 === 0) return 'hard';
-  return 'normal';
-}
+/**
+ * Plan B — Golden Wave Sawtooth Difficulty Curve:
+ * - L1: 2 colors, 5-move handcrafted tutorial
+ * - L2: SHARP SPIKE -> 5 colors high-mix board (>=16 moves)
+ * - L3: Slight dip / relief -> 4 colors breezy streak builder
+ * - L4: Ramp up -> 5 colors + Mystery '?' intro
+ * - L5: Hard Peak -> 6 colors + 2 Mystery bottles
+ * - L6: Relief + Cork tutorial -> 4 colors + Cork
+ * - L7..L9: 5 colors+Cork -> 6 colors+Mystery -> 5 colors pre-boss dip
+ * - L10: Super Hard Boss -> 7 colors + Mystery + Cork + Crate intro
+ * - L11..L15: 5+Crate -> 6+Mystery+Cork -> 5+Crate dip -> 5+Curtain intro -> 6 Hard multi-obstacle
+ * - L16+: Repeating 5-level Golden Wave Sawtooth (Relief -> Step-Up -> Dip -> Ramp-Up -> Hard/Super-Hard Peak)
+ */
+export function getSawtoothProfile(levelNumber: number): SawtoothLevelProfile {
+  const n = Math.max(1, Math.floor(levelNumber));
 
-function getColorCountForLevel(levelNumber: number, difficulty: DifficultyTier): number {
-  if (levelNumber === 1) return 2;
-  if (levelNumber === 2) return 3;
-  if (levelNumber <= 4) return 4;
-  if (levelNumber <= 9) return difficulty === 'hard' ? 5 : 4;
-  if (levelNumber <= 17) return difficulty === 'super_hard' ? 6 : 5;
-  if (levelNumber <= 29) return difficulty === 'super_hard' ? 7 : 6;
-  return difficulty === 'super_hard' ? 7 : 6;
+  switch (n) {
+    case 1:
+      return {
+        colorCount: 2,
+        difficulty: 'normal',
+        mysteryBottles: 1,
+        hideDepth: 1,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 2:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 2,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 16,
+      };
+    case 3:
+      return {
+        colorCount: 4,
+        difficulty: 'normal',
+        mysteryBottles: 3,
+        hideDepth: 2,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 4:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 3,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 5:
+      return {
+        colorCount: 6,
+        difficulty: 'hard',
+        mysteryBottles: 5,
+        hideDepth: 3,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 18,
+      };
+    case 6:
+      return {
+        colorCount: 4,
+        difficulty: 'normal',
+        mysteryBottles: 3,
+        hideDepth: 2,
+        hasCork: true,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 7:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 2,
+        hasCork: true,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 8:
+      return {
+        colorCount: 6,
+        difficulty: 'normal',
+        mysteryBottles: 5,
+        hideDepth: 3,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 9:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 2,
+        hasCork: true,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 10:
+      return {
+        colorCount: 7,
+        difficulty: 'super_hard',
+        mysteryBottles: 6,
+        hideDepth: 3,
+        hasCork: true,
+        hasCrate: true,
+        hasCurtain: false,
+        minSolutionMoves: 20,
+      };
+    case 11:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 2,
+        hasCork: false,
+        hasCrate: true,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 12:
+      return {
+        colorCount: 6,
+        difficulty: 'normal',
+        mysteryBottles: 5,
+        hideDepth: 3,
+        hasCork: true,
+        hasCrate: false,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 13:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 2,
+        hasCork: false,
+        hasCrate: true,
+        hasCurtain: false,
+        minSolutionMoves: 0,
+      };
+    case 14:
+      return {
+        colorCount: 5,
+        difficulty: 'normal',
+        mysteryBottles: 4,
+        hideDepth: 2,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: true,
+        minSolutionMoves: 0,
+      };
+    case 15:
+      return {
+        colorCount: 6,
+        difficulty: 'hard',
+        mysteryBottles: 5,
+        hideDepth: 3,
+        hasCork: true,
+        hasCrate: false,
+        hasCurtain: true,
+        minSolutionMoves: 18,
+      };
+    default: {
+      // L16+ repeating 5-level Golden Wave Sawtooth with rich blind-box mystery density
+      const pos = (n - 1) % 5; // 0: relief, 1: step-up, 2: dip, 3: ramp-up, 4: peak
+      const baseColors = n >= 26 ? 6 : 5;
+
+      if (pos === 0) {
+        return {
+          colorCount: baseColors,
+          difficulty: 'normal',
+          mysteryBottles: baseColors - 1,
+          hideDepth: 2,
+          hasCork: n % 2 === 0,
+          hasCrate: n % 2 === 1,
+          hasCurtain: false,
+          minSolutionMoves: 0,
+        };
+      }
+      if (pos === 1) {
+        const cc = Math.min(7, baseColors + 1);
+        return {
+          colorCount: cc,
+          difficulty: 'normal',
+          mysteryBottles: cc - 1,
+          hideDepth: 3,
+          hasCork: true,
+          hasCrate: false,
+          hasCurtain: n >= 22,
+          minSolutionMoves: 0,
+        };
+      }
+      if (pos === 2) {
+        return {
+          colorCount: baseColors,
+          difficulty: 'normal',
+          mysteryBottles: baseColors - 1,
+          hideDepth: 2,
+          hasCork: false,
+          hasCrate: true,
+          hasCurtain: false,
+          minSolutionMoves: 0,
+        };
+      }
+      if (pos === 3) {
+        const cc = Math.min(7, baseColors + 1);
+        return {
+          colorCount: cc,
+          difficulty: 'normal',
+          mysteryBottles: cc - 1,
+          hideDepth: 3,
+          hasCork: false,
+          hasCrate: true,
+          hasCurtain: true,
+          minSolutionMoves: 0,
+        };
+      }
+      const isSuperHard = n % 10 === 0;
+      return {
+        colorCount: 7,
+        difficulty: isSuperHard ? 'super_hard' : 'hard',
+        mysteryBottles: 7,
+        hideDepth: 3,
+        hasCork: true,
+        hasCrate: true,
+        hasCurtain: true,
+        minSolutionMoves: isSuperHard ? 20 : 18,
+      };
+    }
+  }
 }
 
 function buildHandcraftedLevel1(): Bottle[] {
@@ -81,7 +328,7 @@ function buildHandcraftedLevel1(): Bottle[] {
     {
       id: 'b3',
       layers: [
-        { color: 'coral', hidden: false },
+        { color: 'coral', hidden: true },
         { color: 'azure', hidden: false },
       ],
       obstacle: { type: 'none' },
@@ -97,9 +344,9 @@ function buildHandcraftedLevel1(): Bottle[] {
 function generateCandidateBottles(
   levelNumber: number,
   attempt: number,
-  colorCount: number,
-  difficulty: DifficultyTier
+  profile: SawtoothLevelProfile
 ): Bottle[] {
+  const { colorCount, mysteryBottles, hideDepth, hasCork, hasCrate, hasCurtain } = profile;
   const rng = createRng(
     Math.imul(levelNumber + 17, 2654435761) ^ Math.imul(attempt + 1, 1597334677)
   );
@@ -115,7 +362,7 @@ function generateCandidateBottles(
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  const emptyCount = difficulty === 'super_hard' && colorCount >= 6 ? 2 : 2;
+  const emptyCount = 2;
   const bottles: Bottle[] = [];
 
   for (let i = 0; i < colorCount; i++) {
@@ -137,48 +384,42 @@ function generateCandidateBottles(
 
   // Ensure no bottle starts already solved
   if (bottles.some((b) => isBottleComplete(b))) {
-    // Swap one layer between bottle 0 and bottle 1
     const first = bottles[0].layers[BOTTLE_CAPACITY - 1];
     bottles[0].layers[BOTTLE_CAPACITY - 1] = bottles[1].layers[0];
     bottles[1].layers[0] = first;
   }
 
-  // Mystery '?' layers from Level 6+
-  if (levelNumber >= 6) {
-    const mysteryBottleCount =
-      levelNumber >= 20 ? 3 : levelNumber >= 12 ? 2 : 1;
-    const hideDepth = levelNumber >= 16 ? 2 : 1;
-    for (let m = 0; m < Math.min(mysteryBottleCount, colorCount); m++) {
-      const idx = Math.floor(rng() * colorCount);
-      for (let d = 0; d < hideDepth; d++) {
+  // Mystery '?' layers
+  if (mysteryBottles > 0 && hideDepth > 0) {
+    const picked = new Set<number>();
+    const targetCount = Math.min(mysteryBottles, colorCount);
+    let guard = 0;
+    while (picked.size < targetCount && guard < 24) {
+      picked.add(Math.floor(rng() * colorCount));
+      guard++;
+    }
+    for (const idx of picked) {
+      for (let d = 0; d < Math.min(hideDepth, BOTTLE_CAPACITY - 1); d++) {
         bottles[idx].layers[d].hidden = true;
       }
     }
   }
 
-  // Corked bottle from Level 12+ (only when we have a spare open slot & avoid soft-locking)
-  if (levelNumber >= 12) {
-    // Pick a partially emptied bottle shape: move top layer from one filled bottle to an empty bottle?
-    // Better: take an empty bottle? No, corked bottle must have < 4 layers so you can pour INTO it!
-    // Move top layer of bottle[0] into empty bottle[colorCount] so bottle[0] has 3 layers and empty[0] has 1 layer,
-    // OR leave empty[0] empty and cork empty[0] with requiredColor = top visible color of bottle[1]!
-    const targetCorkIdx = colorCount; // First empty bottle
+  // Corked empty bottle (unlocked by pouring donorColor into it)
+  if (hasCork) {
+    const targetCorkIdx = colorCount;
     const donorColor = bottles[1].layers[BOTTLE_CAPACITY - 1].color;
     bottles[targetCorkIdx].obstacle = { type: 'cork', requiredColor: donorColor };
   }
 
-  // Color-padlocked crate from Level 18+
-  if (levelNumber >= 18) {
-    // Lock bottle[colorCount - 1], unlocked by completing a different color (colors[0])
+  // Color-padlocked crate (unlocked by completing lockColor elsewhere)
+  if (hasCrate) {
     const lockedIdx = colorCount - 1;
-    // Choose a lockColor that does NOT appear as majority inside lockedIdx if possible, or pick colors[0]
     const lockColor = colors[0];
-    // Ensure lockColor isn't stuck inside the locked bottle itself (so player CAN complete lockColor without opening the crate!)
     const hasLockColorInside = bottles[lockedIdx].layers.some((l) => l.color === lockColor);
     if (!hasLockColorInside) {
       bottles[lockedIdx].obstacle = { type: 'crate', lockColor };
     } else {
-      // Swap out any lockColor layers from lockedIdx with non-lockColor layers in bottle 0
       for (let k = 0; k < BOTTLE_CAPACITY; k++) {
         if (bottles[lockedIdx].layers[k].color === lockColor) {
           const swapIdx = bottles[0].layers.findIndex((l) => l.color !== lockColor);
@@ -195,8 +436,8 @@ function generateCandidateBottles(
     }
   }
 
-  // Velvet curtain bottle from Level 24+
-  if (levelNumber >= 24 && colorCount >= 5) {
+  // Velvet curtain bottle (unlocked by completing unlockColor elsewhere)
+  if (hasCurtain && colorCount >= 5) {
     const curtainIdx = colorCount - 2;
     const unlockColor = colors[1];
     for (let k = 0; k < BOTTLE_CAPACITY; k++) {
@@ -235,25 +476,43 @@ export function getLevelSpec(levelNumber: number): LevelSpec {
     };
   }
 
-  const difficulty = getDifficultyForLevel(safeLevel);
-  const colorCount = getColorCountForLevel(safeLevel, difficulty);
+  const profile = getSawtoothProfile(safeLevel);
+  const { colorCount, difficulty, minSolutionMoves } = profile;
 
   let verifiedBottles: Bottle[] | null = null;
   if (safeLevel === 1) {
     verifiedBottles = buildHandcraftedLevel1();
   } else {
-    for (let attempt = 0; attempt < 40; attempt++) {
-      const candidate = generateCandidateBottles(safeLevel, attempt, colorCount, difficulty);
-      if (solveLevel(candidate, 12000) !== null) {
-        verifiedBottles = candidate;
-        break;
+    let bestFallback: { bottles: Bottle[]; moves: number } | null = null;
+    for (let attempt = 0; attempt < 48; attempt++) {
+      const candidate = generateCandidateBottles(safeLevel, attempt, profile);
+      const sol = solveLevel(candidate, 14000);
+      if (sol !== null) {
+        if (sol.length >= minSolutionMoves) {
+          verifiedBottles = candidate;
+          break;
+        }
+        if (!bestFallback || sol.length > bestFallback.moves) {
+          bestFallback = { bottles: candidate, moves: sol.length };
+        }
       }
     }
-    // Safe fallback without obstacles if a rare high-color attempt exceeded budget
+    if (!verifiedBottles && bestFallback) {
+      verifiedBottles = bestFallback.bottles;
+    }
+    // Safe fallback without blocking obstacles while preserving rich mystery '?' layers
     if (!verifiedBottles) {
+      const plainProfile: SawtoothLevelProfile = {
+        ...profile,
+        hasCork: false,
+        hasCrate: false,
+        hasCurtain: false,
+        mysteryBottles: Math.max(2, profile.mysteryBottles - 1),
+        hideDepth: Math.max(2, profile.hideDepth - 1),
+      };
       for (let attempt = 100; attempt < 130; attempt++) {
-        const fallback = generateCandidateBottles(1, attempt, colorCount, 'normal');
-        if (solveLevel(fallback, 12000) !== null) {
+        const fallback = generateCandidateBottles(safeLevel, attempt, plainProfile);
+        if (solveLevel(fallback, 14000) !== null) {
           verifiedBottles = fallback;
           break;
         }
@@ -266,10 +525,10 @@ export function getLevelSpec(levelNumber: number): LevelSpec {
 
   const mechanicsIntroduced: string[] = [];
   if (safeLevel === 1) mechanicsIntroduced.push('Tap-to-Pour Basics');
-  if (safeLevel === 6) mechanicsIntroduced.push('Mystery "?" Layers');
-  if (safeLevel === 12) mechanicsIntroduced.push('Corked Decanters');
-  if (safeLevel === 18) mechanicsIntroduced.push('Color-Padlocked Crates');
-  if (safeLevel === 24) mechanicsIntroduced.push('Velvet Curtain Bottles');
+  if (safeLevel === 2) mechanicsIntroduced.push('Mystery "?" Layers');
+  if (safeLevel === 6) mechanicsIntroduced.push('Corked Decanters');
+  if (safeLevel === 10) mechanicsIntroduced.push('Color-Padlocked Crates');
+  if (safeLevel === 14) mechanicsIntroduced.push('Velvet Curtain Bottles');
 
   const rewardCoins =
     difficulty === 'super_hard' ? 120 : difficulty === 'hard' ? 75 : 40;
@@ -312,7 +571,7 @@ export const EVENT_TRIALS: EventTrialMeta[] = [
     name: 'Veiled Essences',
     subtitle: 'Mystery "?" layers fixed per board',
     difficulty: 'normal',
-    mappedLevel: 6,
+    mappedLevel: 4,
     starReward: 8,
   },
   {
@@ -320,7 +579,7 @@ export const EVENT_TRIALS: EventTrialMeta[] = [
     name: 'Sealed Solarium',
     subtitle: 'Pour matching hue to pop the cork',
     difficulty: 'hard',
-    mappedLevel: 12,
+    mappedLevel: 6,
     starReward: 12,
   },
   {
@@ -328,7 +587,7 @@ export const EVENT_TRIALS: EventTrialMeta[] = [
     name: 'Gilded Vaults',
     subtitle: 'Complete a full flask to unlock padlocks',
     difficulty: 'hard',
-    mappedLevel: 18,
+    mappedLevel: 10,
     starReward: 15,
   },
   {
@@ -336,7 +595,7 @@ export const EVENT_TRIALS: EventTrialMeta[] = [
     name: 'Curtain Finale',
     subtitle: 'All obstacles combined · Super Hard',
     difficulty: 'super_hard',
-    mappedLevel: 24,
+    mappedLevel: 14,
     starReward: 20,
   },
 ];

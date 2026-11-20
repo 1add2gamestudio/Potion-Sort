@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Eye,
-  Play,
-  Sparkles,
-  Tv,
-} from 'lucide-react';
+import { Eye, Image as ImageIcon, Play, Sparkles, Tv, Vibrate } from 'lucide-react';
+import { isNativeHapticsSupported, triggerSemanticHaptic } from '../game/haptics';
+import { useI18n } from '../game/i18n';
+import { playPickupClink, playUiClick } from '../game/sound';
 import { getNextLifeCountdownMs } from '../game/storage';
 import type {
   Bottle,
   BottleStyleId,
+  CgOutcome,
+  CgTier,
   IngredientId,
+  LanguageCode,
   PlayModal,
   PlayerProfile,
 } from '../game/types';
@@ -24,22 +25,27 @@ import {
   SoundOn3DIcon,
   StreakFlame3DIcon,
 } from './GameIcons3D';
+import { OutcomeCgCard } from './OutcomeCgCard';
 
 export interface VictorySnapshot {
+  levelNumber: number;
   levelTitle: string;
   potionOrderName?: string;
   isTrial: boolean;
+  trialId?: string | null;
   moves: number;
   elapsedSec: number;
   coinsEarned: number;
   starsEarned: number;
   ingredient: IngredientId;
   doubled: boolean;
+  cgTier: CgTier;
 }
 
 export interface DefeatSnapshot {
   completedBottles: number;
   totalBottles: number;
+  cgTier: CgTier;
 }
 
 export interface AdRequest {
@@ -64,9 +70,13 @@ interface GameModalsProps {
   onTriggerAd: (req: AdRequest) => void;
   onCompleteAd: () => void;
   onRefillLivesWithCoins: () => void;
-  onToggleSetting: (key: 'soundEnabled' | 'hapticsEnabled' | 'colorSymbolsEnabled') => void;
+  onToggleSetting: (
+    key: 'soundEnabled' | 'bgmEnabled' | 'hapticsEnabled' | 'colorSymbolsEnabled'
+  ) => void;
+  onSelectLanguage: (lang: LanguageCode) => void;
   onSelectBottleStyle: (style: BottleStyleId) => void;
   onOpenBottleCompare: () => void;
+  onOpenCgGallery: () => void;
   onPurchaseRemoveAds: () => void;
   onResetSave: () => void;
 }
@@ -104,12 +114,24 @@ export const GameModals: React.FC<GameModalsProps> = ({
   onCompleteAd,
   onRefillLivesWithCoins,
   onToggleSetting,
+  onSelectLanguage,
   onSelectBottleStyle,
   onOpenBottleCompare,
+  onOpenCgGallery,
   onPurchaseRemoveAds,
   onResetSave,
 }) => {
+  const { t, potionOrderName, ingredientName, bottleDesignText } = useI18n();
   const [adSecondsLeft, setAdSecondsLeft] = useState(2);
+  const [hapticJustTested, setHapticJustTested] = useState(false);
+  const [cgGalleryTab, setCgGalleryTab] = useState<CgOutcome>('victory');
+
+  const nativeHaptics = isNativeHapticsSupported();
+
+  const tapFeedback = () => {
+    playUiClick(profile.soundEnabled);
+    triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+  };
 
   useEffect(() => {
     if (modal !== 'AD_SIMULATION') return;
@@ -128,144 +150,183 @@ export const GameModals: React.FC<GameModalsProps> = ({
   const lifeMin = Math.floor(Math.ceil(lifeCountdownMs / 1000) / 60);
   const lifeSec = Math.ceil(lifeCountdownMs / 1000) % 60;
 
+  const handleTestHaptics = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerSemanticHaptic(true, 'test');
+    playPickupClink(profile.soundEnabled);
+    setHapticJustTested(true);
+    setTimeout(() => setHapticJustTested(false), 900);
+  };
+
+  const cgTriggerLabels: Record<CgOutcome, Record<CgTier, string>> = {
+    victory: {
+      1: t('cgTriggerV1'),
+      2: t('cgTriggerV2'),
+      3: t('cgTriggerV3'),
+    },
+    defeat: {
+      1: t('cgTriggerD1'),
+      2: t('cgTriggerD2'),
+      3: t('cgTriggerD3'),
+    },
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="absolute inset-0 z-40 flex items-center justify-center bg-[#3E1B04]/55 p-4 font-game-body"
+      className="absolute inset-0 z-40 flex items-center justify-center bg-[#3E1B04]/60 p-3.5 font-game-body"
     >
-      <div className="candy-panel-frame w-full max-w-[335px] p-4 text-[#4A2305]">
+      <div className="candy-panel-frame w-full max-w-[348px] max-h-[92dvh] overflow-y-auto p-3.5 text-[#4A2305]">
         {/* PAUSED */}
         {modal === 'PAUSED' && (
           <div className="space-y-3.5">
             <div className="text-center">
               <h2 className="font-game-display text-2xl font-bold text-[#FFF9D6] game-stroke-md">
-                Game Paused
+                {t('pauseTitle')}
               </h2>
               <p className="text-xs font-bold text-[#FFF5DB] mt-1">
                 {profile.streak > 0
-                  ? `Active Solstice Streak: x${profile.streak} (Restarting resets streak & uses 1 life)`
-                  : 'Relax — no move limits or countdown timers.'}
+                  ? t('pauseStreakWarn', { n: profile.streak })
+                  : t('pauseRelaxTip')}
               </p>
             </div>
 
             <div className="candy-card-cream p-3 space-y-2.5">
               <button
                 type="button"
-                onClick={onResume}
+                onClick={() => {
+                  tapFeedback();
+                  onResume();
+                }}
                 className="candy-btn-green-pill w-full py-3 text-white font-game-display font-bold text-base game-stroke-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>Resume</span>
+                <span>{t('resumeBtn')}</span>
               </button>
 
               <button
                 type="button"
-                onClick={onRestartConfirm}
+                onClick={() => {
+                  tapFeedback();
+                  onRestartConfirm();
+                }}
                 className="candy-btn-amber w-full py-2.5 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Restart3DIcon className="w-4 h-4" />
-                <span>Restart Level (-1 Life)</span>
+                <span>{t('restartLevelBtn')}</span>
               </button>
 
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => onToggleSetting('soundEnabled')}
-                  className="candy-pill-cream py-2 px-2 text-xs font-black text-[#4A2305] flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => {
+                    tapFeedback();
+                    onToggleSetting('soundEnabled');
+                  }}
+                  className="candy-pill-cream py-2 px-2 text-xs font-black text-[#4A2305] flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   {profile.soundEnabled ? (
-                    <SoundOn3DIcon className="w-4 h-4" />
+                    <SoundOn3DIcon className="w-4 h-4 shrink-0" />
                   ) : (
-                    <SoundOff3DIcon className="w-4 h-4" />
+                    <SoundOff3DIcon className="w-4 h-4 shrink-0" />
                   )}
-                  <span>{profile.soundEnabled ? 'Sound On' : 'Muted'}</span>
+                  <span>{profile.soundEnabled ? t('soundOn') : t('soundMuted')}</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => onToggleSetting('colorSymbolsEnabled')}
-                  className="candy-pill-cream py-2 px-2 text-xs font-black text-[#4A2305] flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => {
+                    tapFeedback();
+                    onToggleSetting('colorSymbolsEnabled');
+                  }}
+                  className="candy-pill-cream py-2 px-2 text-xs font-black text-[#4A2305] flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <Eye className="w-3.5 h-3.5 text-[#134DF0]" />
-                  <span>{profile.colorSymbolsEnabled ? 'Symbols On' : 'Symbols Off'}</span>
+                  <Eye className="w-3.5 h-3.5 text-[#134DF0] shrink-0" />
+                  <span>
+                    {profile.colorSymbolsEnabled ? t('symbolsOn') : t('symbolsOff')}
+                  </span>
                 </button>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={onExitToHome}
+              onClick={() => {
+                tapFeedback();
+                onExitToHome();
+              }}
               className="w-full py-1.5 text-xs font-black text-[#FFF7DF] hover:text-white cursor-pointer"
             >
-              Quit to Home
+              {t('quitToHome')}
             </button>
           </div>
         )}
 
-        {/* VICTORY */}
+        {/* VICTORY WITH 3-TIER PROGRESSIVE CG */}
         {modal === 'VICTORY' && victorySnapshot && (
-          <div className="space-y-3.5">
+          <div className="space-y-3">
+            {/* Level Header Chip */}
             <div className="text-center">
-              <div className="flex items-center justify-center -space-x-2 mb-1.5">
-                <img
-                  src="/src/assets/images/solstice_mascot_avatar_1794980022747.jpg"
-                  alt="Fox alchemist celebrating"
-                  referrerPolicy="no-referrer"
-                  className="w-11 h-11 rounded-full border-[3px] border-[#FFE875] shadow-md object-cover"
-                />
-                <img
-                  src="/src/assets/images/solstice_dragon_avatar_1794985798351.jpg"
-                  alt="Sky dragon celebrating"
-                  referrerPolicy="no-referrer"
-                  className="w-11 h-11 rounded-full border-[3px] border-[#FFE875] shadow-md object-cover"
-                />
+              <div className="inline-block px-3 py-0.5 rounded-full bg-[#FFF9E6] text-[#8A4105] text-[10px] font-black border border-[#FFF1AD]">
+                {victorySnapshot.isTrial
+                  ? victorySnapshot.levelTitle
+                  : t('levelCta', { n: victorySnapshot.levelNumber })}
+                {victorySnapshot.potionOrderName
+                  ? ` · ${potionOrderName(victorySnapshot.potionOrderName)}`
+                  : ''}
               </div>
-              <div className="inline-block px-3 py-0.5 rounded-full bg-[#FFF9E6] text-[#8A4105] text-[10px] font-black uppercase tracking-widest border border-[#FFF1AD]">
-                {victorySnapshot.levelTitle}
-                {victorySnapshot.potionOrderName ? ` · ${victorySnapshot.potionOrderName}` : ' Cleared!'}
-              </div>
-              <h2 className="font-game-display text-[26px] font-bold text-white game-stroke-md mt-1">
-                Potion Brewed!
-              </h2>
             </div>
 
-            <div className="candy-card-cream p-3 space-y-2.5">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
-                  <div className="text-[10px] font-black text-[#8A5A1A]">TIME</div>
+            {/* 3-Tier Progressive Victory CG Hero Card */}
+            <OutcomeCgCard outcome="victory" tier={victorySnapshot.cgTier} />
+
+            {/* Stats & Rewards */}
+            <div className="candy-card-cream p-2.5 space-y-2">
+              <div className="grid grid-cols-3 gap-1.5 text-center">
+                <div className="p-1.5 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
+                  <div className="text-[10px] font-black text-[#8A5A1A]">{t('statTime')}</div>
                   <div className="text-sm font-black font-tabular">
                     {formatTime(victorySnapshot.elapsedSec)}
                   </div>
                 </div>
-                <div className="p-2 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
-                  <div className="text-[10px] font-black text-[#8A5A1A]">MOVES</div>
+                <div className="p-1.5 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
+                  <div className="text-[10px] font-black text-[#8A5A1A]">{t('statMoves')}</div>
                   <div className="text-sm font-black font-tabular">
                     {victorySnapshot.moves}
                   </div>
                 </div>
-                <div className="p-2 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
-                  <div className="text-[10px] font-black text-[#8A5A1A]">STREAK</div>
+                <div className="p-1.5 rounded-xl bg-[#FFF8E6] border-2 border-[#F2CF7E]">
+                  <div className="text-[10px] font-black text-[#8A5A1A]">{t('statStreak')}</div>
                   <div className="text-sm font-black font-tabular text-[#E81938]">
                     x{profile.streak}
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl p-2.5 bg-[#FFEAB8] border-2 border-[#EFA929] flex items-center justify-between text-xs font-black font-tabular">
-                <span className="text-[#874B00]">+{victorySnapshot.coinsEarned} Coins</span>
-                <span className="text-[#134DF0]">+{victorySnapshot.starsEarned} Stars</span>
-                <span className="capitalize text-[#0E7D68]">+1 {victorySnapshot.ingredient}</span>
+              <div className="rounded-xl px-2.5 py-2 bg-[#FFEAB8] border-2 border-[#EFA929] flex items-center justify-between text-xs font-black font-tabular">
+                <span className="text-[#874B00]">
+                  {t('rewardCoins', { n: victorySnapshot.coinsEarned })}
+                </span>
+                <span className="text-[#134DF0]">
+                  {t('rewardStars', { n: victorySnapshot.starsEarned })}
+                </span>
+                <span className="text-[#0E7D68]">
+                  {t('rewardEssence', { name: ingredientName(victorySnapshot.ingredient, true) })}
+                </span>
               </div>
 
               {!profile.adsRemoved && (
-                <div className="rounded-xl px-3 py-2 bg-[#FFF3D1] border border-[#E6B85C] text-[10px] font-bold text-[#7A440B] flex items-center justify-between">
-                  <span>Interstitial Ad Slot (SDK Ready)</span>
+                <div className="rounded-xl px-2.5 py-1.5 bg-[#FFF3D1] border border-[#E6B85C] text-[10px] font-bold text-[#7A440B] flex items-center justify-between gap-2">
+                  <span className="truncate">{t('adTipLine')}</span>
                   <button
                     type="button"
-                    onClick={onPurchaseRemoveAds}
-                    className="font-black text-[#134DF0] underline cursor-pointer"
+                    onClick={() => {
+                      tapFeedback();
+                      onPurchaseRemoveAds();
+                    }}
+                    className="font-black text-[#134DF0] underline cursor-pointer whitespace-nowrap shrink-0"
                   >
-                    Remove Ads
+                    {t('removeAdsLink')}
                   </button>
                 </div>
               )}
@@ -275,90 +336,96 @@ export const GameModals: React.FC<GameModalsProps> = ({
               <button
                 type="button"
                 data-start="true"
-                onClick={onNextLevel}
+                onClick={() => {
+                  triggerSemanticHaptic(profile.hapticsEnabled, 'pickup');
+                  onNextLevel();
+                }}
                 className="candy-btn-green-pill w-full py-3 text-white font-game-display font-bold text-lg game-stroke-md cursor-pointer"
               >
-                {victorySnapshot.isTrial ? 'Back to Festival' : 'Next Level'}
+                {victorySnapshot.isTrial ? t('backToFestivalBtn') : t('nextLevelBtn')}
               </button>
 
               {!victorySnapshot.doubled && (
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    tapFeedback();
                     onTriggerAd({
                       kind: 'rewarded_2x_coins',
-                      label: `Watch Video for +${victorySnapshot.coinsEarned} Bonus Coins`,
-                    })
-                  }
+                      label: t('adLabel2xCoins', { n: victorySnapshot.coinsEarned }),
+                    });
+                  }}
                   className="candy-btn-blue-pill w-full py-2.5 text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Tv className="w-4 h-4" />
-                  <span>2x Coins · Rewarded Ad</span>
+                  <Tv className="w-4 h-4 shrink-0" />
+                  <span>{t('doubleCoinsBtn')}</span>
                 </button>
               )}
 
               <button
                 type="button"
-                onClick={onExitToHome}
-                className="w-full py-1.5 text-xs font-black text-[#FFF7DF] hover:text-white cursor-pointer"
+                onClick={() => {
+                  tapFeedback();
+                  onExitToHome();
+                }}
+                className="w-full py-1 text-xs font-black text-[#FFF7DF] hover:text-white cursor-pointer"
               >
-                Return Home
+                {t('returnHomeBtn')}
               </button>
             </div>
           </div>
         )}
 
-        {/* DEFEAT / OUT OF MOVES */}
+        {/* DEFEAT WITH 3-TIER PROGRESSIVE COMEDIC CG */}
         {modal === 'DEFEAT' && defeatSnapshot && (
-          <div className="space-y-3.5 text-center">
-            <div>
-              <img
-                src="/src/assets/images/solstice_dragon_avatar_1794985798351.jpg"
-                alt="Sky dragon cheering you on"
-                referrerPolicy="no-referrer"
-                className="w-12 h-12 mx-auto mb-1.5 rounded-full border-[3px] border-[#FFE875] shadow-md object-cover"
-              />
-              <div className="inline-block px-3 py-0.5 rounded-full bg-[#E81938] text-white text-[10px] font-black uppercase tracking-widest">
-                No Valid Pours Left
-              </div>
-              <h2 className="font-game-display text-2xl font-bold text-white game-stroke-md mt-1">
-                Decanters Locked
-              </h2>
-              <p className="text-xs font-bold text-[#FFF5DB] mt-1 font-tabular">
-                Bottles Completed: {defeatSnapshot.completedBottles} / {defeatSnapshot.totalBottles}
-              </p>
+          <div className="space-y-3 text-center">
+            <div className="inline-block px-3 py-0.5 rounded-full bg-[#E81938] text-white text-[10px] font-black font-tabular">
+              {t('defeatBottlesProgress', {
+                done: defeatSnapshot.completedBottles,
+                total: defeatSnapshot.totalBottles,
+              })}
             </div>
 
-            <div className="space-y-2.5">
+            {/* 3-Tier Progressive Defeat CG Hero Card */}
+            <OutcomeCgCard outcome="defeat" tier={defeatSnapshot.cgTier} />
+
+            <div className="space-y-2">
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  tapFeedback();
                   onTriggerAd({
                     kind: 'rewarded_continue',
-                    label: 'Watch Video for +1 Free Crystal Flask',
-                  })
-                }
+                    label: t('adLabelContinue'),
+                  });
+                }}
                 className="candy-btn-green-pill w-full py-3 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Tv className="w-4 h-4" />
-                <span>Continue (+1 Flask · Rewarded Ad)</span>
+                <Tv className="w-4 h-4 shrink-0" />
+                <span>{t('continueAdBtn')}</span>
               </button>
 
               <button
                 type="button"
                 data-start="true"
-                onClick={onRetryAfterDefeat}
+                onClick={() => {
+                  triggerSemanticHaptic(profile.hapticsEnabled, 'pickup');
+                  onRetryAfterDefeat();
+                }}
                 className="candy-btn-blue-pill w-full py-3 text-white font-black text-sm game-stroke-sm cursor-pointer"
               >
-                Try Again (-1 Life)
+                {t('tryAgainBtn')}
               </button>
 
               <button
                 type="button"
-                onClick={onExitToHome}
-                className="w-full py-1.5 text-xs font-black text-[#FFF7DF] cursor-pointer"
+                onClick={() => {
+                  tapFeedback();
+                  onExitToHome();
+                }}
+                className="w-full py-1 text-xs font-black text-[#FFF7DF] cursor-pointer"
               >
-                Return Home
+                {t('returnHomeBtn')}
               </button>
             </div>
           </div>
@@ -372,45 +439,54 @@ export const GameModals: React.FC<GameModalsProps> = ({
             </div>
             <div>
               <h2 className="font-game-display text-2xl font-bold text-[#FFF9D6] game-stroke-md">
-                Lives & Refills
+                {t('livesTitle')}
               </h2>
               <p className="text-xs font-bold text-[#FFF5DB] mt-1 font-tabular">
                 {profile.lives < profile.maxLives
-                  ? `Next life refills in ${String(lifeMin).padStart(2, '0')}:${String(lifeSec).padStart(2, '0')}`
-                  : 'Your lives are currently full (5/5)!'}
+                  ? t('livesNextIn', {
+                      time: `${String(lifeMin).padStart(2, '0')}:${String(lifeSec).padStart(2, '0')}`,
+                    })
+                  : t('livesFullDesc')}
               </p>
             </div>
 
             <div className="space-y-2.5">
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  tapFeedback();
                   onTriggerAd({
                     kind: 'rewarded_life',
-                    label: 'Watch Video for +1 Instant Life',
-                  })
-                }
+                    label: t('adLabelLife'),
+                  });
+                }}
                 className="candy-btn-green-pill w-full py-3 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Tv className="w-4 h-4" />
-                <span>Free +1 Life · Rewarded Ad</span>
+                <Tv className="w-4 h-4 shrink-0" />
+                <span>{t('freeLifeAdBtn')}</span>
               </button>
 
               <button
                 type="button"
                 disabled={profile.coins < 150 || profile.lives >= profile.maxLives}
-                onClick={onRefillLivesWithCoins}
+                onClick={() => {
+                  triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
+                  onRefillLivesWithCoins();
+                }}
                 className="candy-btn-blue-pill w-full py-3 text-white font-black text-xs game-stroke-xs cursor-pointer disabled:cursor-not-allowed"
               >
-                Refill 5/5 Lives (150 Coins)
+                {t('refillLivesCoinsBtn')}
               </button>
 
               <button
                 type="button"
-                onClick={onCloseModal}
+                onClick={() => {
+                  tapFeedback();
+                  onCloseModal();
+                }}
                 className="w-full py-1.5 text-xs font-black text-[#FFF7DF] cursor-pointer"
               >
-                Close
+                {t('closeBtn')}
               </button>
             </div>
           </div>
@@ -418,53 +494,164 @@ export const GameModals: React.FC<GameModalsProps> = ({
 
         {/* SETTINGS */}
         {modal === 'SETTINGS' && (
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-game-display text-xl font-bold text-[#FFF9D6] game-stroke-sm">
-                Settings
+                {t('settingsTitle')}
               </h2>
               <button
                 type="button"
-                onClick={onCloseModal}
-                aria-label="Close settings"
+                onClick={() => {
+                  tapFeedback();
+                  onCloseModal();
+                }}
+                aria-label={t('closeBtn')}
                 className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer"
               >
                 <Close3DIcon className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="candy-card-cream p-3 space-y-2 text-xs">
+            <div className="candy-card-cream p-2.5 space-y-2 text-xs">
+              {/* Language Switcher Row */}
+              <div className="candy-pill-cream w-full px-3 py-1.5 flex items-center justify-between font-black text-[#4A2305]">
+                <span>{t('settingLanguage')}</span>
+                <div className="flex items-center gap-1 bg-[#EBD9B7] p-0.5 rounded-full">
+                  {(['zh', 'en'] as LanguageCode[]).map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => {
+                        tapFeedback();
+                        onSelectLanguage(code);
+                      }}
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-black cursor-pointer transition-colors whitespace-nowrap ${
+                        profile.language === code
+                          ? 'bg-[#6D23E8] text-[#FFE875] shadow-sm'
+                          : 'text-[#6A3E14] hover:text-[#4A2305]'
+                      }`}
+                    >
+                      {code === 'zh' ? '中文' : 'EN'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* BGM & SFX & Color Symbols */}
               {[
-                { key: 'soundEnabled' as const, label: 'Sound Effects' },
-                { key: 'hapticsEnabled' as const, label: 'Vibration Haptics' },
-                { key: 'colorSymbolsEnabled' as const, label: 'Color-Blind Potion Symbols' },
+                { key: 'bgmEnabled' as const, label: t('settingBgm') },
+                { key: 'soundEnabled' as const, label: t('settingSfx') },
+                { key: 'colorSymbolsEnabled' as const, label: t('settingSymbols') },
               ].map((item) => (
                 <button
                   key={item.key}
                   type="button"
-                  onClick={() => onToggleSetting(item.key)}
+                  onClick={() => {
+                    tapFeedback();
+                    onToggleSetting(item.key);
+                  }}
                   className="candy-pill-cream w-full px-3 py-2 flex items-center justify-between font-black text-[#4A2305] cursor-pointer"
                 >
                   <span>{item.label}</span>
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black whitespace-nowrap ${
                       profile[item.key]
                         ? 'bg-[#29B80A] text-white'
                         : 'bg-[#D6C7B2] text-[#5C452B]'
                     }`}
                   >
-                    {profile[item.key] ? 'ON' : 'OFF'}
+                    {profile[item.key] ? t('toggleOn') : t('toggleOff')}
                   </span>
                 </button>
               ))}
+
+              {/* Mobile Graduated Haptics Row with Live Test Button */}
+              <div className="space-y-1">
+                <div className="candy-pill-cream w-full px-3 py-1.5 flex items-center justify-between gap-2 font-black text-[#4A2305]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playUiClick(profile.soundEnabled);
+                      onToggleSetting('hapticsEnabled');
+                      if (!profile.hapticsEnabled) {
+                        triggerSemanticHaptic(true, 'pickup');
+                      }
+                    }}
+                    className="flex-1 text-left cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Vibrate className="w-3.5 h-3.5 text-[#D66A00] shrink-0" />
+                    <span className="truncate">{t('settingHaptics')}</span>
+                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {profile.hapticsEnabled && (
+                      <button
+                        type="button"
+                        onClick={handleTestHaptics}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-black cursor-pointer transition-transform whitespace-nowrap ${
+                          hapticJustTested
+                            ? 'bg-[#EA7607] text-white scale-95'
+                            : 'bg-[#FFF1C2] border border-[#E0A134] text-[#7A3503]'
+                        }`}
+                      >
+                        {hapticJustTested ? t('testHapticSent') : t('testHapticBtn')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playUiClick(profile.soundEnabled);
+                        onToggleSetting('hapticsEnabled');
+                        if (!profile.hapticsEnabled) {
+                          triggerSemanticHaptic(true, 'pickup');
+                        }
+                      }}
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-black cursor-pointer whitespace-nowrap ${
+                        profile.hapticsEnabled
+                          ? 'bg-[#29B80A] text-white'
+                          : 'bg-[#D6C7B2] text-[#5C452B]'
+                      }`}
+                    >
+                      {profile.hapticsEnabled ? t('toggleOn') : t('toggleOff')}
+                    </button>
+                  </div>
+                </div>
+                {profile.hapticsEnabled && !nativeHaptics && (
+                  <p className="px-2 text-[9.5px] font-bold text-[#8A5A1A] leading-snug">
+                    {t('hapticsFallbackNote')}
+                  </p>
+                )}
+              </div>
+
+              {/* 6-CG Outcome Gallery Entry */}
               <button
                 type="button"
-                onClick={onOpenBottleCompare}
+                onClick={() => {
+                  tapFeedback();
+                  onOpenCgGallery();
+                }}
                 className="candy-pill-cream w-full px-3 py-2 flex items-center justify-between font-black text-[#4A2305] cursor-pointer"
               >
-                <span>Crystal Flask Design</span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#7126E8] text-[#FFE875]">
-                  Compare 4
+                <span className="flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#7126E8]" />
+                  <span>{t('settingCgGallery')}</span>
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#E86F16] text-[#FFF8E0] whitespace-nowrap">
+                  {t('settingCgGalleryBadge')}
+                </span>
+              </button>
+
+              {/* Bottle Style Compare */}
+              <button
+                type="button"
+                onClick={() => {
+                  tapFeedback();
+                  onOpenBottleCompare();
+                }}
+                className="candy-pill-cream w-full px-3 py-2 flex items-center justify-between font-black text-[#4A2305] cursor-pointer"
+              >
+                <span>{t('settingBottleStyle')}</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#7126E8] text-[#FFE875] whitespace-nowrap">
+                  {t('compareFourBadge')}
                 </span>
               </button>
             </div>
@@ -473,29 +660,104 @@ export const GameModals: React.FC<GameModalsProps> = ({
               <button
                 type="button"
                 disabled={profile.adsRemoved}
-                onClick={onPurchaseRemoveAds}
-                className="candy-btn-gold w-full py-3 text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
+                onClick={() => {
+                  triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
+                  onPurchaseRemoveAds();
+                }}
+                className="candy-btn-gold w-full py-2.5 text-white text-xs font-black game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ShieldCheck3DIcon className="w-5 h-5" />
+                <ShieldCheck3DIcon className="w-5 h-5 shrink-0" />
                 <span>
-                  {profile.adsRemoved
-                    ? 'All Ads Removed (Owned)'
-                    : 'Paid Remove All Ads — $4.99 (Stub)'}
+                  {profile.adsRemoved ? t('removeAdsOwned') : t('removeAdsBuy')}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={onResetSave}
-                className="w-full py-1.5 text-[11px] font-black text-[#FFF7DF] hover:underline cursor-pointer"
+                onClick={() => {
+                  tapFeedback();
+                  onResetSave();
+                }}
+                className="w-full py-1 text-[11px] font-black text-[#FFF7DF] hover:underline cursor-pointer"
               >
-                Reset Local Progress
+                {t('resetProgressBtn')}
               </button>
             </div>
           </div>
         )}
 
-        {/* SIMULATED AD SDK PLACEHOLDER */}
+        {/* 6-CG OUTCOME GALLERY SHOWCASE */}
+        {modal === 'CG_GALLERY' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="font-game-display text-lg font-bold text-[#FFF9D6] game-stroke-sm leading-tight truncate">
+                  {t('cgGalleryTitle')}
+                </h2>
+                <p className="text-[10.5px] font-bold text-[#FFF5DB] leading-snug">
+                  {t('cgGallerySubtitle')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  tapFeedback();
+                  onCloseModal();
+                }}
+                aria-label={t('closeBtn')}
+                className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer shrink-0"
+              >
+                <Close3DIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Segmented Tab Switcher: Victory 3 Tiers vs Defeat 3 Tiers */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  tapFeedback();
+                  setCgGalleryTab('victory');
+                }}
+                className={`py-2 px-2 text-xs font-black cursor-pointer whitespace-nowrap ${
+                  cgGalleryTab === 'victory'
+                    ? 'candy-btn-green text-white game-stroke-xs'
+                    : 'candy-card-cream text-[#6A3E14]'
+                }`}
+              >
+                {t('cgTabVictory')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  tapFeedback();
+                  setCgGalleryTab('defeat');
+                }}
+                className={`py-2 px-2 text-xs font-black cursor-pointer whitespace-nowrap ${
+                  cgGalleryTab === 'defeat'
+                    ? 'candy-btn-purple text-white game-stroke-xs'
+                    : 'candy-card-cream text-[#6A3E14]'
+                }`}
+              >
+                {t('cgTabDefeat')}
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {([1, 2, 3] as CgTier[]).map((tier) => (
+                <div key={`${cgGalleryTab}-${tier}`} className="candy-card-cream p-2 space-y-1.5">
+                  <OutcomeCgCard outcome={cgGalleryTab} tier={tier} compact />
+                  <div className="px-1 flex items-center justify-between text-[10px] font-black text-[#7D4918]">
+                    <span>{cgTriggerLabels[cgGalleryTab][tier]}</span>
+                    <span className="text-[#6D23E8]">{t('tapCgZoomHint')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* REWARDED SUPPLY BONUS */}
         {modal === 'AD_SIMULATION' && adRequest && (
           <div className="space-y-3.5 text-center">
             <div className="candy-card-cream w-16 h-16 mx-auto flex items-center justify-center">
@@ -503,45 +765,52 @@ export const GameModals: React.FC<GameModalsProps> = ({
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-[#FFF9D6]">
-                Ad SDK Placeholder
+                {t('rewardVideoTag')}
               </div>
               <h2 className="font-game-display text-lg font-bold text-white game-stroke-sm mt-1">
                 {adRequest.label}
               </h2>
               <p className="text-xs font-bold text-[#FFF5DB] mt-1">
                 {adSecondsLeft > 0
-                  ? `Simulated video playing (${adSecondsLeft}s)...`
-                  : 'Reward unlocked!'}
+                  ? t('rewardVideoPlaying', { s: adSecondsLeft })
+                  : t('rewardVideoReady')}
               </p>
             </div>
 
             <button
               type="button"
               disabled={adSecondsLeft > 0}
-              onClick={onCompleteAd}
+              onClick={() => {
+                triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
+                onCompleteAd();
+              }}
               className="candy-btn-green-pill w-full py-3 text-white font-black text-xs game-stroke-xs cursor-pointer disabled:cursor-wait flex items-center justify-center gap-1.5"
             >
               <StreakFlame3DIcon className="w-4 h-4" />
-              <span>{adSecondsLeft > 0 ? 'Please Wait...' : 'Claim Reward'}</span>
+              <span>{adSecondsLeft > 0 ? t('pleaseWait') : t('claimRewardBtn')}</span>
             </button>
           </div>
         )}
+
         {/* BOTTLE DESIGN 2x2 COMPARE SHOWCASE */}
         {modal === 'BOTTLE_COMPARE' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-game-display text-lg font-bold text-[#FFF9D6] game-stroke-sm leading-tight">
-                  Crystal Flask Designs
+                  {t('bottleCompareTitle')}
                 </h2>
                 <p className="text-[11px] font-bold text-[#FFF5DB]">
-                  Tap any edition to equip it on the shelves
+                  {t('bottleCompareSubtitle')}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={onCloseModal}
-                aria-label="Close bottle comparison"
+                onClick={() => {
+                  tapFeedback();
+                  onCloseModal();
+                }}
+                aria-label={t('closeBtn')}
                 className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer shrink-0"
               >
                 <Close3DIcon className="w-4 h-4" />
@@ -551,11 +820,13 @@ export const GameModals: React.FC<GameModalsProps> = ({
             <div className="grid grid-cols-2 gap-2.5">
               {BOTTLE_STYLE_LIST.map((design) => {
                 const isSelected = profile.bottleStyle === design.id;
+                const loc = bottleDesignText(design.id, design.title, design.tagline);
                 return (
                   <button
                     key={design.id}
                     type="button"
                     onClick={() => {
+                      triggerSemanticHaptic(profile.hapticsEnabled, 'pickup');
                       onSelectBottleStyle(design.id);
                       onCloseModal();
                     }}
@@ -564,8 +835,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
                     }`}
                   >
                     {isSelected && (
-                      <span className="absolute -top-2 right-2 px-2 py-0.5 rounded-full bg-[#29B80A] border border-white text-white text-[9px] font-black uppercase">
-                        Active
+                      <span className="absolute -top-2 right-2 px-2 py-0.5 rounded-full bg-[#29B80A] border border-white text-white text-[9px] font-black">
+                        {t('bottleActiveBadge')}
                       </span>
                     )}
                     <div className="relative w-full pt-1.5 pb-2 flex flex-col items-center justify-end rounded-xl bg-gradient-to-b from-[#8A4D1F] via-[#A9622B] to-[#743C13] shadow-inner overflow-hidden">
@@ -583,10 +854,10 @@ export const GameModals: React.FC<GameModalsProps> = ({
                       <div className="w-[90%] h-2.5 -mt-2 rounded-full bg-gradient-to-b from-[#D98E47] to-[#874411] border border-[#522405]" />
                     </div>
                     <div className="mt-1.5 text-xs font-black text-[#4E2305] leading-tight">
-                      {design.title}
+                      {loc.title}
                     </div>
                     <div className="mt-0.5 text-[9.5px] font-bold text-[#8A5A1A] leading-snug">
-                      {design.tagline}
+                      {loc.tagline}
                     </div>
                   </button>
                 );

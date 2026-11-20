@@ -5,18 +5,18 @@
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Nunito', system-ui, sans-serif;
+    font-family: 'Nunito', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
 }
 
 .font-game-display {
-  font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  font-family: 'Fredoka', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Nunito', system-ui, sans-serif;
 }
 
 .font-game-body {
-  font-family: 'Nunito', system-ui, sans-serif;
+  font-family: 'Nunito', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
 }
 
 .font-tabular {
@@ -95,7 +95,7 @@
 }
 .candy-btn-amber,
 .candy-btn-gold {
-  background-image: linear-gradient(180deg, #ff9c24 0%, #e46e09 100%);
+  background-image: linear-gradient(180deg, #e5be5e 0%, #dc983b 100%);
   border-image-source: url('/assets/ui/btn-amber.png');
 }
 .candy-btn-purple {
@@ -189,7 +189,7 @@
 .candy-panel-frame {
   border-width: 6px;
   border-radius: 26px;
-  background-image: linear-gradient(180deg, #f3a11e 0%, #d46b0c 100%);
+  background-image: linear-gradient(180deg, #e5c368 0%, #d89b3e 100%);
   border-image-source: url('/assets/ui/panel-gold-frame.png');
   border-image-slice: 108 108 108 108 fill;
   border-image-width: 28px;
@@ -488,6 +488,297 @@
   animation: potion-bubble-drift 3.4s ease-in-out infinite;
 }
 
+/* 3-Tier Outcome CG Animations */
+@keyframes cg-kenburns {
+  0% {
+    transform: scale(1.0) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.06) translate3d(0, -3px, 0);
+  }
+  100% {
+    transform: scale(1.0) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes cg-gentle-settle {
+  0% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1.0);
+  }
+}
+
+@keyframes cg-sunburst {
+  0%, 100% {
+    opacity: 0.48;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes cg-sheen {
+  0% {
+    transform: translateX(-40%) skewX(-20deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  52% {
+    transform: translateX(420%) skewX(-20deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(420%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+@keyframes cg-bubble-rise {
+  0% {
+    transform: translateY(8px) scale(0.75);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-96px) scale(1.18);
+    opacity: 0;
+  }
+}
+
+@keyframes cg-smoke-drift {
+  0%, 100% {
+    transform: translate(-50%, 0) scale(0.9);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(-50%, -14px) scale(1.22);
+    opacity: 0.65;
+  }
+}
+
+/* Bottle Invalid Tap Shake */
+@keyframes bottle-error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  22% {
+    transform: translateX(-5px) rotate(-2.5deg);
+  }
+  48% {
+    transform: translateX(5px) rotate(2.5deg);
+  }
+  74% {
+    transform: translateX(-3px) rotate(-1.2deg);
+  }
+}
+
+/* Non-Blocking Obstacle Unlock Burst VFX */
+@keyframes obstacle-cork-fly {
+  0% {
+    transform: translate(-50%, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(-36%, -36px) rotate(135deg) scale(1.18);
+    opacity: 0.96;
+  }
+  100% {
+    transform: translate(-18%, -66px) rotate(290deg) scale(0.55);
+    opacity: 0;
+  }
+}
+
+@keyframes obstacle-crate-shard {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx, 24px), var(--dy, -26px)) rotate(var(--rot, 140deg)) scale(0.25);
+    opacity: 0;
+  }
+}
+
+@keyframes obstacle-curtain-lift {
+  0% {
+    transform: translateY(0) scaleY(1);
+    opacity: 0.92;
+  }
+  100% {
+    transform: translateY(-38px) scaleY(0.18);
+    opacity: 0;
+  }
+}
+
+@keyframes obstacle-ring-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.75);
+    opacity: 0;
+  }
+}
+
+/* Victory Fly-In Coin & Star Particle */
+@keyframes victory-fly-token {
+  0% {
+    transform: translate(0, 0) scale(0.45) rotate(0deg);
+    opacity: 0;
+  }
+  16% {
+    transform: translate(var(--mid-x, 0px), var(--mid-y, -28px)) scale(1.15) rotate(45deg);
+    opacity: 1;
+  }
+  84% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--end-x, -110px), var(--end-y, -320px)) scale(0.68) rotate(220deg);
+    opacity: 0.08;
+  }
+}
+
+@keyframes hud-coin-pop {
+  0%, 100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes victory-confetti-pop {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(0.35) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  42% {
+    transform: translate(-50%, -50%) translate3d(var(--cx-mid, 40px), var(--cy-mid, -120px), 0)
+      scale(1.06) rotate(var(--c-rot-mid, 180deg));
+    opacity: 1;
+  }
+  78% {
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate3d(var(--cx-end, 70px), var(--cy-end, 140px), 0)
+      scale(0.82) rotate(var(--c-rot-end, 520deg));
+    opacity: 0;
+  }
+}
+
+@keyframes victory-star-burst {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(0.2) rotate(0deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  58% {
+    transform: translate(-50%, -50%) translate3d(var(--sx-end, 80px), var(--sy-end, -80px), 0)
+      scale(1.22) rotate(110deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%)
+      translate3d(calc(var(--sx-end, 80px) * 1.18), calc(var(--sy-end, -80px) * 1.18), 0)
+      scale(0.15) rotate(210deg);
+    opacity: 0;
+  }
+}
+
+@keyframes victory-burst-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.22);
+    opacity: 0.92;
+  }
+  65% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.85);
+    opacity: 0;
+  }
+}
+
+.animate-cg-kenburns {
+  animation: cg-kenburns 11s ease-in-out infinite;
+}
+
+.animate-cg-gentle-settle {
+  animation: cg-gentle-settle 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-cg-sunburst {
+  animation: cg-sunburst 3.2s ease-in-out infinite;
+}
+
+.animate-cg-sheen {
+  animation: cg-sheen 4.4s ease-in-out infinite;
+}
+
+.animate-cg-bubble-rise {
+  animation: cg-bubble-rise 3.4s ease-out infinite;
+}
+
+.animate-cg-smoke-drift {
+  animation: cg-smoke-drift 2.8s ease-in-out infinite;
+}
+
+.animate-bottle-error-shake {
+  animation: bottle-error-shake 0.28s ease-in-out;
+}
+
+.animate-obstacle-cork-fly {
+  animation: obstacle-cork-fly 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-obstacle-crate-shard {
+  animation: obstacle-crate-shard 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-obstacle-curtain-lift {
+  animation: obstacle-curtain-lift 0.46s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-obstacle-ring-burst {
+  animation: obstacle-ring-burst 0.46s ease-out forwards;
+}
+
+.animate-victory-fly-token {
+  animation: victory-fly-token 0.76s cubic-bezier(0.22, 0.88, 0.32, 1) forwards;
+}
+
+.animate-victory-confetti {
+  animation: victory-confetti-pop var(--c-dur, 1.35s) cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
+}
+
+.animate-victory-star-burst {
+  animation: victory-star-burst var(--s-dur, 0.92s) cubic-bezier(0.16, 0.9, 0.28, 1) forwards;
+}
+
+.animate-victory-burst-ring {
+  animation: victory-burst-ring 0.82s cubic-bezier(0.16, 0.88, 0.3, 1) forwards;
+}
+
+.animate-hud-coin-pop {
+  animation: hud-coin-pop 0.28s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-gentle-float,
   .animate-cork-pop,
@@ -503,7 +794,23 @@
   .animate-paw-clap-right,
   .animate-tail-wag,
   .animate-potion-shimmer,
-  .animate-potion-bubble {
+  .animate-potion-bubble,
+  .animate-cg-kenburns,
+  .animate-cg-gentle-settle,
+  .animate-cg-sunburst,
+  .animate-cg-sheen,
+  .animate-cg-bubble-rise,
+  .animate-cg-smoke-drift,
+  .animate-bottle-error-shake,
+  .animate-obstacle-cork-fly,
+  .animate-obstacle-crate-shard,
+  .animate-obstacle-curtain-lift,
+  .animate-obstacle-ring-burst,
+  .animate-victory-fly-token,
+  .animate-victory-confetti,
+  .animate-victory-star-burst,
+  .animate-victory-burst-ring,
+  .animate-hud-coin-pop {
     animation: none;
   }
 }

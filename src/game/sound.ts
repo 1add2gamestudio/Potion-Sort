@@ -1,9 +1,18 @@
+import type { CgTier } from './types';
+
 export const POUR_SOUND_FILE = '/assets/sounds/asmr_bottle_glug.mp3';
 
 let audioCtx: AudioContext | null = null;
 let cachedPourBuffer: AudioBuffer | null = null;
 let pendingPourBuffer: Promise<AudioBuffer | null> | null = null;
 let activePourCleanup: (() => void) | null = null;
+
+// Procedural Sunlit Conservatory BGM state
+let bgmMasterGain: GainNode | null = null;
+let bgmTimer: ReturnType<typeof setInterval> | null = null;
+let bgmStep = 0;
+let bgmWanted = false;
+let bgmDuckTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function stopPourSound(): void {
   activePourCleanup?.();
@@ -21,6 +30,152 @@ function ensureCtx(): AudioContext | null {
     audioCtx.resume().catch(() => {});
   }
   return audioCtx;
+}
+
+// Gentle C-major / F-lydian sunlit harp + warm marimba arpeggio cycle (16 steps @ 520ms)
+const BGM_HARP_NOTES: Array<number | null> = [
+  523.25, 659.25, 783.99, 987.77,
+  659.25, 783.99, 1046.5, null,
+  440.0, 523.25, 659.25, 783.99,
+  587.33, 659.25, 783.99, null,
+];
+const BGM_BASS_NOTES: Array<number | null> = [
+  130.81, null, null, null,
+  174.61, null, null, null,
+  110.0, null, null, null,
+  146.83, null, 196.0, null,
+];
+
+function scheduleBgmStep(): void {
+  if (!bgmWanted || !audioCtx || !bgmMasterGain) return;
+  if (audioCtx.state !== 'running') return;
+  if (typeof document !== 'undefined' && document.hidden) return;
+
+  const now = audioCtx.currentTime;
+  const idx = bgmStep % BGM_HARP_NOTES.length;
+  bgmStep += 1;
+
+  const harpFreq = BGM_HARP_NOTES[idx];
+  if (harpFreq) {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(harpFreq, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(0.16, now + 0.035);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
+    osc.connect(g);
+    g.connect(bgmMasterGain);
+    osc.start(now);
+    osc.stop(now + 1.1);
+  }
+
+  const bassFreq = BGM_BASS_NOTES[idx];
+  if (bassFreq) {
+    const bassOsc = audioCtx.createOscillator();
+    const bassGain = audioCtx.createGain();
+    bassOsc.type = 'sine';
+    bassOsc.frequency.setValueAtTime(bassFreq, now);
+    bassGain.gain.setValueAtTime(0.0001, now);
+    bassGain.gain.linearRampToValueAtTime(0.24, now + 0.08);
+    bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.85);
+    bassOsc.connect(bassGain);
+    bassGain.connect(bgmMasterGain);
+    bassOsc.start(now);
+    bassOsc.stop(now + 1.9);
+  }
+
+  // Delicate sparkle chime every 8 steps
+  if (idx === 6 || idx === 14) {
+    const chime = audioCtx.createOscillator();
+    const cg = audioCtx.createGain();
+    chime.type = 'sine';
+    chime.frequency.setValueAtTime(idx === 6 ? 1318.5 : 1567.98, now + 0.14);
+    cg.gain.setValueAtTime(0.0001, now + 0.14);
+    cg.gain.linearRampToValueAtTime(0.06, now + 0.17);
+    cg.gain.exponentialRampToValueAtTime(0.0001, now + 0.95);
+    chime.connect(cg);
+    cg.connect(bgmMasterGain);
+    chime.start(now + 0.14);
+    chime.stop(now + 0.98);
+  }
+}
+
+export function startBgm(enabled: boolean): void {
+  bgmWanted = enabled;
+  if (!enabled) {
+    stopBgm();
+    return;
+  }
+  const ctx = ensureCtx();
+  if (!ctx) return;
+
+  if (!bgmMasterGain) {
+    bgmMasterGain = ctx.createGain();
+    bgmMasterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    bgmMasterGain.connect(ctx.destination);
+  }
+
+  const now = ctx.currentTime;
+  bgmMasterGain.gain.cancelScheduledValues(now);
+  bgmMasterGain.gain.setValueAtTime(Math.max(0.0001, bgmMasterGain.gain.value), now);
+  bgmMasterGain.gain.linearRampToValueAtTime(0.11, now + 0.65);
+
+  if (!bgmTimer) {
+    scheduleBgmStep();
+    bgmTimer = setInterval(scheduleBgmStep, 520);
+  }
+}
+
+export function stopBgm(): void {
+  bgmWanted = false;
+  if (bgmTimer) {
+    clearInterval(bgmTimer);
+    bgmTimer = null;
+  }
+  if (bgmDuckTimer) {
+    clearTimeout(bgmDuckTimer);
+    bgmDuckTimer = null;
+  }
+  if (audioCtx && bgmMasterGain) {
+    const now = audioCtx.currentTime;
+    bgmMasterGain.gain.cancelScheduledValues(now);
+    bgmMasterGain.gain.setValueAtTime(Math.max(0.0001, bgmMasterGain.gain.value), now);
+    bgmMasterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+  }
+}
+
+export function duckBgm(durationMs = 700): void {
+  if (!bgmWanted || !audioCtx || !bgmMasterGain) return;
+  const now = audioCtx.currentTime;
+  bgmMasterGain.gain.cancelScheduledValues(now);
+  bgmMasterGain.gain.setValueAtTime(Math.max(0.0001, bgmMasterGain.gain.value), now);
+  bgmMasterGain.gain.linearRampToValueAtTime(0.038, now + 0.08);
+  if (bgmDuckTimer) clearTimeout(bgmDuckTimer);
+  bgmDuckTimer = setTimeout(() => {
+    bgmDuckTimer = null;
+    if (!bgmWanted || !audioCtx || !bgmMasterGain) return;
+    const t = audioCtx.currentTime;
+    bgmMasterGain.gain.cancelScheduledValues(t);
+    bgmMasterGain.gain.setValueAtTime(Math.max(0.0001, bgmMasterGain.gain.value), t);
+    bgmMasterGain.gain.linearRampToValueAtTime(0.11, t + 0.45);
+  }, durationMs);
+}
+
+export function handleVisibilityAudioSync(bgmEnabled: boolean): void {
+  if (typeof document === 'undefined') return;
+  if (document.hidden) {
+    if (audioCtx && audioCtx.state === 'running') {
+      audioCtx.suspend().catch(() => {});
+    }
+  } else {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    if (bgmEnabled) {
+      startBgm(true);
+    }
+  }
 }
 
 async function loadPourBuffer(ctx: AudioContext): Promise<AudioBuffer | null> {
@@ -61,11 +216,29 @@ export function triggerHaptic(enabled: boolean, durationMs = 10): void {
   }
 }
 
+export function playUiClick(enabled: boolean): void {
+  if (!enabled) return;
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(640, now);
+  osc.frequency.exponentialRampToValueAtTime(860, now + 0.042);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.linearRampToValueAtTime(0.036, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.09);
+}
+
 export function playPickupClink(enabled: boolean): void {
   if (!enabled) return;
   const ctx = ensureCtx();
   if (!ctx) return;
-  // Warm up pour audio buffer on first bottle interaction
   preloadPourSounds();
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -140,11 +313,10 @@ export function playPourSound(enabled: boolean, layerCount: number): void {
   stopPourSound();
   if (!enabled) return;
 
+  duckBgm(640);
+
   const ctx = ensureCtx();
   const drops = Math.max(1, Math.min(4, layerCount));
-  // Strictly synced to active liquid stream window inside POUR_DURATION_MS (680ms):
-  // starts at 0.14s when stream enters the bottle and finishes cleanly at ~0.58s
-  // before the bottle lands back on the shelf.
   const rate = drops === 1 ? 1.02 : drops === 2 ? 0.99 : 0.96;
   const startDelaySec = 0.14;
   const streamDurSec = 0.44;
@@ -201,7 +373,6 @@ export function playPourSound(enabled: boolean, layerCount: number): void {
     return;
   }
 
-  // First pour before buffer finishes decoding: decode in background and use HTMLAudio immediately
   void loadPourBuffer(ctx);
   let innerStop: (() => void) | null = null;
   const timer = setTimeout(() => {
@@ -222,9 +393,9 @@ export function playCorkPop(enabled: boolean): void {
   const gain = ctx.createGain();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(165, now);
-  osc.frequency.exponentialRampToValueAtTime(360, now + 0.085);
+  osc.frequency.exponentialRampToValueAtTime(380, now + 0.085);
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.linearRampToValueAtTime(0.06, now + 0.018);
+  gain.gain.linearRampToValueAtTime(0.065, now + 0.018);
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
   osc.connect(gain);
   gain.connect(ctx.destination);
@@ -232,13 +403,64 @@ export function playCorkPop(enabled: boolean): void {
   osc.stop(now + 0.17);
 }
 
-export function playSealRiseChime(enabled: boolean): void {
+export function playObstacleUnlockSound(
+  enabled: boolean,
+  type: 'cork' | 'crate' | 'curtain'
+): void {
   if (!enabled) return;
+  if (type === 'cork') {
+    playCorkPop(true);
+    return;
+  }
   const ctx = ensureCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
-  // Airy ascending crystalline shimmer synced with the double-helix ribbons rising (0.0s -> 0.55s)
-  [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+
+  if (type === 'crate') {
+    // Crisp woody crack + sparkling padlock chime
+    [220, 330, 587.33, 880].forEach((freq, idx) => {
+      const t = now + idx * 0.055;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = idx < 2 ? 'square' : 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.12, t + 0.12);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(idx < 2 ? 0.032 : 0.045, t + 0.014);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.24);
+    });
+  } else {
+    // Silky ascending harp whoosh for velvet curtain lift
+    [440, 554.37, 659.25, 880, 1108.73].forEach((freq, idx) => {
+      const t = now + idx * 0.045;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.035, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+  }
+}
+
+export function playSealRiseChime(enabled: boolean, comboStep = 0): void {
+  if (!enabled) return;
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  duckBgm(950);
+  const now = ctx.currentTime;
+  const pitchMult = Math.pow(1.06, Math.min(5, Math.max(0, comboStep)));
+  [523.25, 659.25, 783.99, 1046.5].forEach((baseFreq, idx) => {
+    const freq = baseFreq * pitchMult;
     const t = now + idx * 0.115;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -255,19 +477,21 @@ export function playSealRiseChime(enabled: boolean): void {
   });
 }
 
-export function playBottleComplete(enabled: boolean): void {
+export function playBottleComplete(enabled: boolean, comboStep = 0): void {
   if (!enabled) return;
   const ctx = ensureCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
-  [293.66, 369.99, 440.0, 587.33].forEach((freq, idx) => {
-    const t = now + idx * 0.078;
+  const pitchMult = Math.pow(1.06, Math.min(5, Math.max(0, comboStep)));
+  [293.66, 369.99, 440.0, 587.33].forEach((baseFreq, idx) => {
+    const freq = baseFreq * pitchMult;
+    const t = now + idx * 0.075;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, t);
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(0.045, t + 0.022);
+    gain.gain.linearRampToValueAtTime(0.048, t + 0.022);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.44);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -276,23 +500,79 @@ export function playBottleComplete(enabled: boolean): void {
   });
 }
 
-export function playVictoryFanfare(enabled: boolean): void {
+export function playCoinTick(enabled: boolean, index = 0): void {
   if (!enabled) return;
   const ctx = ensureCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
-  [261.63, 329.63, 392.0, 493.88, 523.25].forEach((freq, idx) => {
-    const t = now + idx * 0.105;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const freq = 980 + Math.min(7, index) * 75;
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq, now);
+  osc.frequency.exponentialRampToValueAtTime(freq * 1.25, now + 0.06);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.linearRampToValueAtTime(0.032, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.12);
+}
+
+export function playVictoryFanfare(enabled: boolean, tier: CgTier = 1): void {
+  if (!enabled) return;
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  duckBgm(1400);
+  const now = ctx.currentTime;
+  const notes =
+    tier === 3
+      ? [261.63, 329.63, 392.0, 523.25, 659.25, 783.99, 1046.5]
+      : tier === 2
+      ? [261.63, 329.63, 392.0, 523.25, 659.25, 783.99]
+      : [261.63, 329.63, 392.0, 493.88, 523.25];
+  notes.forEach((freq, idx) => {
+    const t = now + idx * (tier === 3 ? 0.085 : 0.102);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = tier >= 2 && idx >= notes.length - 2 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(tier === 3 ? 0.058 : 0.05, t + 0.026);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + (idx === notes.length - 1 ? 0.8 : 0.52));
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.84);
+  });
+}
+
+export function playDefeatChime(enabled: boolean, tier: CgTier = 1): void {
+  if (!enabled) return;
+  const ctx = ensureCtx();
+  if (!ctx) return;
+  duckBgm(900);
+  const now = ctx.currentTime;
+  // Playful descending cartoon-warm sigh -> encouraging resolve note on Tier 3
+  const notes =
+    tier === 3
+      ? [349.23, 311.13, 261.63, 329.63]
+      : tier === 2
+      ? [392.0, 349.23, 293.66, 261.63]
+      : [392.0, 349.23, 329.63];
+  notes.forEach((freq, idx) => {
+    const t = now + idx * 0.115;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, t);
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.linearRampToValueAtTime(0.05, t + 0.028);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.56);
+    gain.gain.linearRampToValueAtTime(0.042, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(t);
-    osc.stop(t + 0.58);
+    osc.stop(t + 0.36);
   });
 }

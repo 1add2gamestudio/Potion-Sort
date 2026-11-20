@@ -31,6 +31,8 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   bottleStyle: 'starlight',
   language: 'zh',
   completedTrials: [],
+  lastDailyRewardDate: null,
+  dailyLoginStreak: 0,
 };
 
 export function regenerateLives(profile: PlayerProfile, now = Date.now()): PlayerProfile {
@@ -85,6 +87,12 @@ export function loadProfile(): PlayerProfile {
         ? parsed.claimedEventMilestones
         : [],
       completedTrials: Array.isArray(parsed.completedTrials) ? parsed.completedTrials : [],
+      lastDailyRewardDate:
+        typeof parsed.lastDailyRewardDate === 'string' ? parsed.lastDailyRewardDate : null,
+      dailyLoginStreak:
+        typeof parsed.dailyLoginStreak === 'number' && Number.isFinite(parsed.dailyLoginStreak)
+          ? Math.max(0, Math.floor(parsed.dailyLoginStreak))
+          : 0,
     };
     return regenerateLives(merged);
   } catch {

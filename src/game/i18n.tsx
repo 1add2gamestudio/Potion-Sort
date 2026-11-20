@@ -56,7 +56,7 @@ const ZH = {
   // Modals — Paused
   pauseTitle: '游戏已暂停',
   pauseStreakWarn: '当前连胜 x{n}（重开将重置连胜并消耗 1 点体力）',
-  pauseRelaxTip: '轻松畅玩——没有步数限制与倒计时压力。',
+  pauseRelaxTip: '轻松畅玩——倒计时归零不会失败，规定时间内通关还可赢得速通加分。',
   resumeBtn: '继续游戏',
   restartLevelBtn: '重开本关（-1 体力）',
   soundOn: '音效开启',
@@ -69,6 +69,8 @@ const ZH = {
   statTime: '用时',
   statMoves: '步数',
   statStreak: '连胜',
+  speedTimerTooltip: '速通加分倒计时（归零不影响通关）',
+  speedBonusBadge: '限时速通奖励 · +{pts} 积分 · +{coins} 金币',
   rewardCoins: '+{n} 金币',
   rewardStars: '+{n} 星光',
   rewardEssence: '+1 {name}',
@@ -139,6 +141,19 @@ const ZH = {
   bottleCompareTitle: '水晶瓶外观工坊',
   bottleCompareSubtitle: '点击任意款式即可立即更换货架上的魔药瓶',
   bottleActiveBadge: '使用中',
+
+  // Modals — Daily Login Reward
+  dailyRewardTitle: '每日暖阳礼遇',
+  dailyRewardSubtitle: '欢迎回到花房工坊！今日份补给已为你备好',
+  dailyRewardStreakBadge: '连续签到第 {n} 天',
+  dailyRewardCoinsLabel: '+{n} 金币',
+  dailyRewardCoinsDesc: '暖阳金币礼袋，可用于商店补给或恢复体力',
+  dailyRewardBoosterUndo: '+1 撤回道具',
+  dailyRewardBoosterShuffle: '+1 洗牌道具',
+  dailyRewardBoosterFlask: '+1 额外水晶空瓶',
+  dailyRewardBoosterDesc: '随机惊喜炼金道具，关键时刻助你从容破局',
+  dailyRewardClaimBtn: '收下今日好礼',
+  dailyRewardComeBackHint: '明天再来签到即可延续连签奖励',
 
   // MetaViews — Map, Alembic, Event, Shop, Salons
   mapTitle: '日光关卡地图',
@@ -253,6 +268,8 @@ const EN: Record<I18nKey, string> = {
   statTime: 'TIME',
   statMoves: 'MOVES',
   statStreak: 'STREAK',
+  speedTimerTooltip: 'Optional speed bonus countdown (no penalty at 0:00)',
+  speedBonusBadge: 'Speed Bonus · +{pts} pts · +{coins} Coins',
   rewardCoins: '+{n} Coins',
   rewardStars: '+{n} Stars',
   rewardEssence: '+1 {name}',
@@ -323,6 +340,19 @@ const EN: Record<I18nKey, string> = {
   bottleCompareTitle: 'Crystal Flask Designs',
   bottleCompareSubtitle: 'Tap any edition to equip it on the shelves',
   bottleActiveBadge: 'Active',
+
+  // Modals — Daily Login Reward
+  dailyRewardTitle: 'Daily Login Gift',
+  dailyRewardSubtitle: 'Welcome back to the conservatory! Today’s gift is ready',
+  dailyRewardStreakBadge: 'Day {n} Streak',
+  dailyRewardCoinsLabel: '+{n} Coins',
+  dailyRewardCoinsDesc: 'A sunlit pouch of coins for boosters or life refills',
+  dailyRewardBoosterUndo: '+1 Undo Booster',
+  dailyRewardBoosterShuffle: '+1 Shuffle Booster',
+  dailyRewardBoosterFlask: '+1 Extra Crystal Flask',
+  dailyRewardBoosterDesc: 'A lucky workshop booster ready for your next puzzle',
+  dailyRewardClaimBtn: 'Claim Daily Gift',
+  dailyRewardComeBackHint: 'Return tomorrow to grow your daily streak',
 
   // MetaViews — Map, Alembic, Event, Shop, Salons
   mapTitle: 'Solarium Map',

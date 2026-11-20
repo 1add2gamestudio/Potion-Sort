@@ -129,7 +129,8 @@ export type PlayModal =
   | 'SETTINGS'
   | 'AD_SIMULATION'
   | 'BOTTLE_COMPARE'
-  | 'CG_GALLERY';
+  | 'CG_GALLERY'
+  | 'DAILY_REWARD';
 
 export interface BoostersInventory {
   undo: number;
@@ -163,4 +164,6 @@ export interface PlayerProfile {
   bottleStyle: BottleStyleId;
   language: LanguageCode;
   completedTrials: string[];
+  lastDailyRewardDate: string | null;
+  dailyLoginStreak: number;
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Flame, Sparkles, Star } from 'lucide-react';
+import { Clock, Flame, Sparkles, Star } from 'lucide-react';
 import {
   addExtraFlaskBooster,
   applyShuffleBooster,
@@ -36,6 +36,11 @@ import {
   type PourTimelineState,
 } from '../game/pourAnimation';
 import { SEAL_DURATION_MS, SEAL_TRIGGER_DELAY_MS } from '../game/sealAnimation';
+import {
+  computeTargetTimeSec,
+  evaluateSpeedBonus,
+  formatCountdown,
+} from '../game/speedBonus';
 import {
   type Bottle,
   type BottleStyleId,
@@ -110,6 +115,7 @@ interface VictoryEffectState {
 interface GameplayScreenProps {
   level: LevelSpec;
   isTrialMode: boolean;
+  isPaused?: boolean;
   profile: PlayerProfile;
   runKey: number;
   onPause: () => void;
@@ -118,7 +124,14 @@ interface GameplayScreenProps {
   onRestartRequest: () => void;
   onConsumeBooster: (key: 'undo' | 'shuffle' | 'extraFlask') => boolean;
   onRequestRewardedBooster: (key: 'undo' | 'shuffle' | 'extraFlask') => void;
-  onVictory: (stats: { moves: number; elapsedSec: number; bottlesCount: number }) => void;
+  onVictory: (stats: {
+    moves: number;
+    elapsedSec: number;
+    targetSec: number;
+    speedBonusPoints: number;
+    speedBonusCoins: number;
+    bottlesCount: number;
+  }) => void;
   onGiveUp: (stats: { completedBottles: number; totalBottles: number }) => void;
   onSelectBottleStyle: (style: BottleStyleId) => void;
   onOpenBottleCompare: () => void;
@@ -163,6 +176,7 @@ function splitBottleRows(bottles: Bottle[]): { rows: Bottle[][]; compact: boolea
 export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   level,
   isTrialMode,
+  isPaused = false,
   profile,
   runKey,
   onPause,
@@ -176,12 +190,14 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 }) => {
   const { t, colorName, potionOrderName, mechanicName } = useI18n();
 
+  const targetSec = useMemo(() => computeTargetTimeSec(level), [level]);
+
   const [bottles, setBottles] = useState<Bottle[]>(() => cloneBottles(level.bottles));
   const [history, setHistory] = useState<Bottle[][]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [shakeBottleId, setShakeBottleId] = useState<string | null>(null);
   const [moves, setMoves] = useState(0);
-  const [startTimeMs, setStartTimeMs] = useState(() => Date.now());
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [freeStreakUndos, setFreeStreakUndos] = useState(0);
   const [activePour, setActivePour] = useState<ActivePourState | null>(null);
   const [sealVisuals, setSealVisuals] = useState<
@@ -200,6 +216,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   });
 
   const wonRef = useRef(false);
+  const elapsedSecRef = useRef(0);
   const bottleComboRef = useRef(0);
   const pourRafRef = useRef<number | null>(null);
   const pourSeqRef = useRef(1);
@@ -525,7 +542,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setHistory([]);
     setSelectedId(null);
     setMoves(0);
-    setStartTimeMs(Date.now());
+    setElapsedSec(0);
+    elapsedSecRef.current = 0;
     setFreeStreakUndos(profile.streak >= 3 ? 1 : 0);
     pushReaction(
       'fox',
@@ -562,6 +580,17 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       return () => clearTimeout(timer);
     }
   }, [level, runKey]);
+
+  // Pause-aware subtle level duration & bonus countdown ticker
+  useEffect(() => {
+    if (isPaused || wonRef.current) return;
+    const interval = setInterval(() => {
+      if (wonRef.current) return;
+      elapsedSecRef.current += 1;
+      setElapsedSec(elapsedSecRef.current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPaused, level, runKey]);
 
   const stuck = useMemo(
     () => !isLevelComplete(bottles) && !hasValidMoves(bottles),
@@ -732,7 +761,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         if (isLevelComplete(outcome.bottles)) {
           wonRef.current = true;
           pushReaction('dragon', t('reactLevelComplete', { name: potionOrderName(level.potionOrderName) }));
-          const elapsedSec = Math.max(1, Math.round((Date.now() - startTimeMs) / 1000));
+          const finalElapsedSec = Math.max(1, elapsedSecRef.current);
+          const speedBonus = evaluateSpeedBonus(finalElapsedSec, targetSec, level.difficulty);
           const victoryTier = resolveVictoryCgTier({
             streakAfterWin: isTrialMode ? profile.streak : profile.streak + 1,
             difficulty: level.difficulty,
@@ -746,14 +776,20 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             triggerSemanticHaptic(profile.hapticsEnabled, victoryHapticForTier(victoryTier));
             triggerMascotCheer(1900, 0);
             triggerVictoryEffect(victoryTier);
-            launchVictoryFlyInTokens(isTrialMode ? 60 : level.rewardCoins, profile.soundEnabled);
+            launchVictoryFlyInTokens(
+              (isTrialMode ? 60 : level.rewardCoins) + speedBonus.bonusCoins,
+              profile.soundEnabled
+            );
           }, flyStartDelay);
 
           const doneTimer = setTimeout(() => {
             setHudCoinBonus(0);
             onVictory({
               moves: moves + 1,
-              elapsedSec,
+              elapsedSec: finalElapsedSec,
+              targetSec,
+              speedBonusPoints: speedBonus.bonusPoints,
+              speedBonusCoins: speedBonus.bonusCoins,
               bottlesCount: level.colorCount,
             });
           }, modalOpenDelay);
@@ -1109,6 +1145,21 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             <span className="inline-flex items-center gap-0.5 text-[#C44606]">
               <Flame className="w-3 h-3 text-[#E81938] fill-[#FF5A26]" />
               {profile.streak}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span
+              title={t('speedTimerTooltip')}
+              aria-label={`${t('speedTimerTooltip')} ${formatCountdown(Math.max(0, targetSec - elapsedSec))}`}
+              className={`inline-flex items-center gap-0.5 whitespace-nowrap transition-colors duration-300 ${
+                targetSec - elapsedSec <= 0
+                  ? 'text-[#9B7A54]/80'
+                  : targetSec - elapsedSec <= 10
+                  ? 'text-[#C8371E]'
+                  : 'text-[#0E7D68]'
+              }`}
+            >
+              <Clock className="w-3 h-3" />
+              {formatCountdown(Math.max(0, targetSec - elapsedSec))}
             </span>
           </div>
         </div>

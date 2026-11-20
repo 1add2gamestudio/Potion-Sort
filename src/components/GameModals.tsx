@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, Image as ImageIcon, Play, Sparkles, Tv, Vibrate } from 'lucide-react';
+import { Eye, Gift, Image as ImageIcon, Play, Sparkles, Tv, Vibrate, Zap } from 'lucide-react';
+import type { DailyRewardGrant } from '../game/dailyReward';
 import { isNativeHapticsSupported, triggerSemanticHaptic } from '../game/haptics';
 import { useI18n } from '../game/i18n';
 import { playPickupClink, playUiClick } from '../game/sound';
@@ -18,12 +19,16 @@ import { BOTTLE_STYLE_LIST } from './bottleDesigns';
 import { CrystalBottle } from './CrystalBottle';
 import {
   Close3DIcon,
+  Coin3DIcon,
+  ExtraBottle3DIcon,
   Heart3DIcon,
   Restart3DIcon,
   ShieldCheck3DIcon,
+  Shuffle3DIcon,
   SoundOff3DIcon,
   SoundOn3DIcon,
   StreakFlame3DIcon,
+  Undo3DIcon,
 } from './GameIcons3D';
 import { OutcomeCgCard } from './OutcomeCgCard';
 
@@ -35,6 +40,9 @@ export interface VictorySnapshot {
   trialId?: string | null;
   moves: number;
   elapsedSec: number;
+  targetSec?: number;
+  speedBonusPoints?: number;
+  speedBonusCoins?: number;
   coinsEarned: number;
   starsEarned: number;
   ingredient: IngredientId;
@@ -61,7 +69,9 @@ interface GameModalsProps {
   victorySnapshot: VictorySnapshot | null;
   defeatSnapshot: DefeatSnapshot | null;
   adRequest: AdRequest | null;
+  dailyReward: DailyRewardGrant | null;
   onCloseModal: () => void;
+  onClaimDailyReward: () => void;
   onResume: () => void;
   onRestartConfirm: () => void;
   onExitToHome: () => void;
@@ -104,7 +114,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
   victorySnapshot,
   defeatSnapshot,
   adRequest,
+  dailyReward,
   onCloseModal,
+  onClaimDailyReward,
   onResume,
   onRestartConfirm,
   onExitToHome,
@@ -314,6 +326,18 @@ export const GameModals: React.FC<GameModalsProps> = ({
                   {t('rewardEssence', { name: ingredientName(victorySnapshot.ingredient, true) })}
                 </span>
               </div>
+
+              {victorySnapshot.speedBonusPoints && victorySnapshot.speedBonusPoints > 0 && (
+                <div className="rounded-xl px-2.5 py-1.5 bg-[#E6FAF4] border border-[#6BD4B7] text-[11px] font-black text-[#0B6B58] flex items-center justify-center gap-1.5 font-tabular">
+                  <Zap className="w-3.5 h-3.5 text-[#0E9F84] fill-[#34D399] shrink-0" />
+                  <span>
+                    {t('speedBonusBadge', {
+                      pts: victorySnapshot.speedBonusPoints,
+                      coins: victorySnapshot.speedBonusCoins ?? 0,
+                    })}
+                  </span>
+                </div>
+              )}
 
               {!profile.adsRemoved && (
                 <div className="rounded-xl px-2.5 py-1.5 bg-[#FFF3D1] border border-[#E6B85C] text-[10px] font-bold text-[#7A440B] flex items-center justify-between gap-2">
@@ -862,6 +886,84 @@ export const GameModals: React.FC<GameModalsProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* DAILY LOGIN REWARD */}
+        {modal === 'DAILY_REWARD' && dailyReward && (
+          <div className="space-y-3.5 text-center">
+            <div className="flex items-start justify-between gap-2">
+              <div className="w-9 h-9 shrink-0" aria-hidden="true" />
+              <div className="flex flex-col items-center">
+                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF9E6] text-[#8A4105] text-[10px] font-black border border-[#FFF1AD] font-tabular">
+                  <Gift className="w-3 h-3 text-[#E86F16]" />
+                  <span>{t('dailyRewardStreakBadge', { n: dailyReward.dayStreak })}</span>
+                </div>
+                <h2 className="font-game-display text-2xl font-bold text-[#FFF9D6] game-stroke-md mt-1 leading-tight">
+                  {t('dailyRewardTitle')}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  tapFeedback();
+                  onCloseModal();
+                }}
+                aria-label={t('closeBtn')}
+                className="candy-btn-blue w-9 h-9 flex items-center justify-center cursor-pointer shrink-0"
+              >
+                <Close3DIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs font-bold text-[#FFF5DB] -mt-1 px-2 leading-snug">
+              {t('dailyRewardSubtitle')}
+            </p>
+
+            <div className="candy-card-cream p-4 space-y-2.5 flex flex-col items-center">
+              <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-b from-[#FFF6D6] to-[#FFE29C] border-2 border-[#EFA929] shadow-inner flex items-center justify-center">
+                {dailyReward.kind === 'coins' ? (
+                  <Coin3DIcon className="w-13 h-13 drop-shadow-[0_4px_6px_rgba(120,58,9,0.28)]" />
+                ) : dailyReward.boosterKey === 'undo' ? (
+                  <Undo3DIcon className="w-12 h-12 drop-shadow-[0_4px_6px_rgba(120,58,9,0.28)]" />
+                ) : dailyReward.boosterKey === 'shuffle' ? (
+                  <Shuffle3DIcon className="w-12 h-12 drop-shadow-[0_4px_6px_rgba(120,58,9,0.28)]" />
+                ) : (
+                  <ExtraBottle3DIcon className="w-12 h-12 drop-shadow-[0_4px_6px_rgba(120,58,9,0.28)]" />
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <div className="font-game-display text-xl font-bold text-[#6B2F04] font-tabular">
+                  {dailyReward.kind === 'coins'
+                    ? t('dailyRewardCoinsLabel', { n: dailyReward.amount })
+                    : dailyReward.boosterKey === 'undo'
+                    ? t('dailyRewardBoosterUndo')
+                    : dailyReward.boosterKey === 'shuffle'
+                    ? t('dailyRewardBoosterShuffle')
+                    : t('dailyRewardBoosterFlask')}
+                </div>
+                <p className="text-[11px] font-bold text-[#8A5A1A] leading-snug px-2">
+                  {dailyReward.kind === 'coins'
+                    ? t('dailyRewardCoinsDesc')
+                    : t('dailyRewardBoosterDesc')}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={onClaimDailyReward}
+                className="candy-btn-green-pill w-full py-3 text-white font-game-display font-bold text-base game-stroke-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 shrink-0" />
+                <span>{t('dailyRewardClaimBtn')}</span>
+              </button>
+              <p className="text-[10.5px] font-bold text-[#FFF5DB]">
+                {t('dailyRewardComeBackHint')}
+              </p>
             </div>
           </div>
         )}

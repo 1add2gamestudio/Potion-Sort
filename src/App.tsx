@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   GameModals,
   type AdRequest,
@@ -14,6 +14,13 @@ import {
   ShopView,
 } from './components/MetaViews';
 import { TitleHomeScreen } from './components/TitleHomeScreen';
+import {
+  applyDailyLoginReward,
+  computeNextDailyStreak,
+  isDailyRewardAvailable,
+  rollDailyLoginReward,
+  type DailyRewardGrant,
+} from './game/dailyReward';
 import { addExtraFlaskBooster } from './game/engine';
 import { triggerSemanticHaptic } from './game/haptics';
 import { LanguageProvider, createI18nValue } from './game/i18n';
@@ -68,6 +75,8 @@ export default function App() {
   const [victorySnap, setVictorySnap] = useState<VictorySnapshot | null>(null);
   const [defeatSnap, setDefeatSnap] = useState<DefeatSnapshot | null>(null);
   const [adRequest, setAdRequest] = useState<AdRequest | null>(null);
+  const [pendingDailyReward, setPendingDailyReward] = useState<DailyRewardGrant | null>(null);
+  const dailyCheckedRef = useRef(false);
   const [levelFailCounts, setLevelFailCounts] = useState<Record<number, number>>({});
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
@@ -75,6 +84,23 @@ export default function App() {
   useEffect(() => {
     saveProfile(profile);
   }, [profile]);
+
+  // Trigger daily login reward modal once per local calendar day upon opening on Home
+  useEffect(() => {
+    if (dailyCheckedRef.current) return;
+    if (screen !== 'HOME' || modal !== 'NONE') return;
+    dailyCheckedRef.current = true;
+
+    if (isDailyRewardAvailable(profile.lastDailyRewardDate)) {
+      const nextStreak = computeNextDailyStreak(
+        profile.lastDailyRewardDate,
+        profile.dailyLoginStreak
+      );
+      const gift = rollDailyLoginReward(nextStreak);
+      setPendingDailyReward(gift);
+      setModal('DAILY_REWARD');
+    }
+  }, [screen, modal, profile.lastDailyRewardDate, profile.dailyLoginStreak]);
 
   // Preload all 6 static progressive Victory/Defeat CGs silently
   useEffect(() => {
@@ -215,7 +241,13 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [screen, modal, profile.highestLevel, startCampaignLevel]);
 
-  const handleVictory = (stats: { moves: number; elapsedSec: number }) => {
+  const handleVictory = (stats: {
+    moves: number;
+    elapsedSec: number;
+    targetSec: number;
+    speedBonusPoints: number;
+    speedBonusCoins: number;
+  }) => {
     const trialMeta = activeTrialId
       ? EVENT_TRIALS.find((t) => t.id === activeTrialId)
       : null;
@@ -228,7 +260,8 @@ export default function App() {
       ? 8
       : 5;
 
-    const coinsEarned = trialMeta ? 60 : activeLevel.rewardCoins;
+    const baseCoins = trialMeta ? 60 : activeLevel.rewardCoins;
+    const coinsEarned = baseCoins + stats.speedBonusCoins;
     const ingredient = activeLevel.rewardIngredient;
     const nextStreak = activeTrialId ? profile.streak : profile.streak + 1;
     const cgTier = resolveVictoryCgTier({
@@ -277,6 +310,9 @@ export default function App() {
       trialId: activeTrialId,
       moves: stats.moves,
       elapsedSec: stats.elapsedSec,
+      targetSec: stats.targetSec,
+      speedBonusPoints: stats.speedBonusPoints,
+      speedBonusCoins: stats.speedBonusCoins,
       coinsEarned,
       starsEarned,
       ingredient,
@@ -454,6 +490,19 @@ export default function App() {
     playBottleComplete(profile.soundEnabled);
   };
 
+  const handleClaimDailyReward = () => {
+    if (!pendingDailyReward) {
+      setModal('NONE');
+      return;
+    }
+    const claimed = pendingDailyReward;
+    setProfile((curr) => applyDailyLoginReward(curr, claimed));
+    playBottleComplete(profile.soundEnabled, 1);
+    triggerSemanticHaptic(profile.hapticsEnabled, 'victory1');
+    setPendingDailyReward(null);
+    setModal('NONE');
+  };
+
   return (
     <LanguageProvider lang={profile.language}>
       <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#FFEBC2] via-[#FFD996] to-[#F7BA63] flex items-center justify-center sm:p-4 overflow-hidden">
@@ -474,6 +523,7 @@ export default function App() {
             <GameplayScreen
               level={activeLevel}
               isTrialMode={Boolean(activeTrialId)}
+              isPaused={modal !== 'NONE'}
               profile={profile}
               runKey={runKey}
               onPause={() => setModal('PAUSED')}
@@ -564,7 +614,9 @@ export default function App() {
             victorySnapshot={victorySnap}
             defeatSnapshot={defeatSnap}
             adRequest={adRequest}
+            dailyReward={pendingDailyReward}
             onCloseModal={() => setModal('NONE')}
+            onClaimDailyReward={handleClaimDailyReward}
             onResume={() => setModal('NONE')}
             onRestartConfirm={handleRestartConfirm}
             onExitToHome={handleExitToHome}
@@ -610,6 +662,7 @@ export default function App() {
             }}
             onResetSave={() => {
               setLevelFailCounts({});
+              setPendingDailyReward(null);
               setProfile({ ...DEFAULT_PROFILE, lastLifeTimestamp: Date.now() });
               setModal('NONE');
               setScreen('HOME');

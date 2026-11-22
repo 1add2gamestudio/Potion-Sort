@@ -65,6 +65,9 @@ import {
   Undo3DIcon,
 } from './GameIcons3D';
 import { VictoryEffect } from './VictoryEffect';
+import solsticeDragonAvatarImg from '../assets/images/solstice_dragon_avatar_1794985798351.jpg';
+import solsticeMascotAvatarImg from '../assets/images/solstice_mascot_avatar_1794980022747.jpg';
+import stageCFullwidthImg from '../assets/images/stage_c_fullwidth_1794988696753.jpg';
 
 interface ActivePourState {
   id: number;
@@ -909,7 +912,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const { rows, compact } = useMemo(() => splitBottleRows(bottles), [bottles]);
   const totalUndoCount = profile.boosters.undo + freeStreakUndos;
 
-  const stageImage = '/src/assets/images/stage_c_fullwidth_1794988696753.jpg';
+  const stageImage = stageCFullwidthImg;
   const stageAlt = t('gameSubtitle');
 
   const atmosphereOverlay =
@@ -1200,7 +1203,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           {stuck ? (
             <div className="animate-mascot-cheer flex items-center gap-2 px-3 py-1 rounded-full bg-[#D91634] border-2 border-[#FFE875] text-white text-xs font-black shadow-md">
               <img
-                src="/src/assets/images/solstice_dragon_avatar_1794985798351.jpg"
+                src={solsticeDragonAvatarImg}
                 alt="Sky dragon companion"
                 referrerPolicy="no-referrer"
                 className="w-6 h-6 rounded-full border-2 border-[#FFE875] object-cover shrink-0"
@@ -1233,8 +1236,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
               <img
                 src={
                   reaction.who === 'fox'
-                    ? '/src/assets/images/solstice_mascot_avatar_1794980022747.jpg'
-                    : '/src/assets/images/solstice_dragon_avatar_1794985798351.jpg'
+                    ? solsticeMascotAvatarImg
+                    : solsticeDragonAvatarImg
                 }
                 alt={reaction.who === 'fox' ? 'Fox alchemist' : 'Sky dragon'}
                 referrerPolicy="no-referrer"

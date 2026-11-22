@@ -26,6 +26,8 @@ import {
   StreakFlame3DIcon,
   Trophy3DIcon,
 } from './GameIcons3D';
+import solsticeHome3dSceneImg from '../assets/images/solstice_home_3d_scene_1794980022597.jpg';
+import solsticeMascotAvatarImg from '../assets/images/solstice_mascot_avatar_1794980022747.jpg';
 
 interface TitleHomeScreenProps {
   profile: PlayerProfile;
@@ -80,7 +82,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
     <div className="relative w-full h-full flex flex-col justify-between overflow-hidden font-game-body select-none">
       {/* Locked Sunlit Conservatory Key Art (Fox Alchemist + Sky Dragon + Purple Cauldron) */}
       <img
-        src="/src/assets/images/solstice_home_3d_scene_1794980022597.jpg"
+        src={solsticeHome3dSceneImg}
         alt={t('gameTitle')}
         referrerPolicy="no-referrer"
         className="absolute inset-0 w-full h-full object-cover object-center"
@@ -101,7 +103,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             className="relative w-12 h-12 rounded-2xl border-[3px] border-[#FFE875] bg-[#6D23E8] shadow-[0_4px_0_#2E0870] overflow-visible cursor-pointer shrink-0 active:translate-y-0.5"
           >
             <img
-              src="/src/assets/images/solstice_mascot_avatar_1794980022747.jpg"
+              src={solsticeMascotAvatarImg}
               alt={t('gameTitle')}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover rounded-[13px]"

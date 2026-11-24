@@ -48,9 +48,15 @@ import {
 } from './game/outcomeCg';
 import {
   handleVisibilityAudioSync,
-  playBottleComplete,
+  playAchievementUnlockSound,
+  playAddBottleSound,
+  playAlembicBrewSound,
+  playDailyCheckInSound,
   playDefeatChime,
   playPickupClink,
+  playShopPurchaseSound,
+  resolveGameplayBgmMood,
+  setBgmMood,
   startBgm,
   stopBgm,
   stopPourSound,
@@ -186,6 +192,18 @@ export default function App() {
       stopPourSound();
     }
   }, [screen]);
+
+  // Keep 4-state adaptive BGM mood synchronized with current screen & progression
+  useEffect(() => {
+    setBgmMood(
+      resolveGameplayBgmMood({
+        inGameplay: screen === 'PLAYING',
+        difficulty: activeLevel.difficulty,
+        isTrial: Boolean(activeTrialId),
+        streak: profile.streak,
+      })
+    );
+  }, [screen, activeLevel.difficulty, activeTrialId, profile.streak]);
 
   // Live life regeneration ticker every second
   useEffect(() => {
@@ -461,7 +479,7 @@ export default function App() {
       return;
     }
 
-    playBottleComplete(profile.soundEnabled, 0);
+    playAddBottleSound(profile.soundEnabled);
     setActiveLevel((curr) => ({
       ...curr,
       bottles: addExtraFlaskBooster(curr.bottles),
@@ -526,7 +544,7 @@ export default function App() {
       };
       return syncAlembicSeenAfterBrew(updated);
     });
-    playBottleComplete(profile.soundEnabled);
+    playAlembicBrewSound(profile.soundEnabled);
   };
 
   const handleClaimEventMilestone = (starsRequired: number) => {
@@ -545,14 +563,14 @@ export default function App() {
         claimedEventMilestones: [...curr.claimedEventMilestones, starsRequired],
       };
     });
-    playBottleComplete(profile.soundEnabled);
+    playAchievementUnlockSound(profile.soundEnabled, false);
   };
 
   const handleClaimCgReward = (cgId: OutcomeCgId): number => {
     const res = claimCgAchievementReward(profile, cgId);
     if (!res.claimed) return 0;
     setProfile((curr) => markAchievementsSeen(claimCgAchievementReward(curr, cgId).profile));
-    playBottleComplete(profile.soundEnabled, 1);
+    playAchievementUnlockSound(profile.soundEnabled, false);
     return res.coinsGranted;
   };
 
@@ -560,7 +578,7 @@ export default function App() {
     const res = claimAllCgAchievementRewards(profile);
     if (res.coinsGranted <= 0) return 0;
     setProfile((curr) => markAchievementsSeen(claimAllCgAchievementRewards(curr).profile));
-    playBottleComplete(profile.soundEnabled, 2);
+    playAchievementUnlockSound(profile.soundEnabled, true);
     return res.coinsGranted;
   };
 
@@ -581,7 +599,7 @@ export default function App() {
         ingredients: nextIngredients,
       };
     });
-    playBottleComplete(profile.soundEnabled);
+    playShopPurchaseSound(profile.soundEnabled);
     return rolled;
   };
 
@@ -592,7 +610,7 @@ export default function App() {
       coins: curr.coins - SINGLE_LIFE_COIN_COST,
       lives: Math.min(curr.maxLives, curr.lives + 1),
     }));
-    playPickupClink(profile.soundEnabled);
+    playShopPurchaseSound(profile.soundEnabled);
     if (modal === 'NO_LIVES') {
       setModal('NONE');
     }
@@ -605,7 +623,7 @@ export default function App() {
       coins: curr.coins - FULL_LIVES_COIN_COST,
       lives: curr.maxLives,
     }));
-    playBottleComplete(profile.soundEnabled);
+    playShopPurchaseSound(profile.soundEnabled);
     if (modal === 'NO_LIVES') {
       setModal('NONE');
     }
@@ -634,7 +652,7 @@ export default function App() {
     }
     const claimed = pendingDailyReward;
     setProfile((curr) => applyDailyLoginReward(curr, claimed));
-    playBottleComplete(profile.soundEnabled, claimed.kind === 'grand' ? 2 : 1);
+    playDailyCheckInSound(profile.soundEnabled, claimed.kind === 'grand');
     triggerSemanticHaptic(
       profile.hapticsEnabled,
       claimed.kind === 'grand' ? 'victory3' : 'victory1'
@@ -680,7 +698,7 @@ export default function App() {
   const handleConfirmRemoveAds = () => {
     setProfile((curr) => applyRemoveAdsPurchase(curr));
     clearsSinceInterstitialRef.current = 0;
-    playBottleComplete(profile.soundEnabled, 1);
+    playShopPurchaseSound(profile.soundEnabled);
 
     // If purchased directly from an interstitial intermission, jump straight into the pending level
     if (adRequest?.isInterstitial && adRequest.pendingNextLevel) {

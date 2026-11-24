@@ -71,7 +71,7 @@ const SubViewShell: React.FC<SubViewShellProps> = ({
             <button
               type="button"
               onClick={() => {
-                playUiClick(soundEnabled);
+                playUiClick(soundEnabled, 'close');
                 triggerSemanticHaptic(hapticsEnabled, 'tap');
                 onBack();
               }}

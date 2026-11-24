@@ -14,16 +14,22 @@ import { triggerSemanticHaptic, victoryHapticForTier } from '../game/haptics';
 import { useI18n } from '../game/i18n';
 import { resolveVictoryCgTier } from '../game/outcomeCg';
 import {
+  playAddBottleSound,
   playBottleComplete,
   playCoinTick,
   playCorkPop,
   playErrorTap,
+  playMysteryReveal,
   playObstacleUnlockSound,
   playPickupClink,
   playPourSound,
   playSealRiseChime,
+  playShuffleSound,
   playUiClick,
+  playUndoSound,
   playVictoryFanfare,
+  resolveGameplayBgmMood,
+  setBgmMood,
   stopPourSound,
 } from '../game/sound';
 import {
@@ -43,6 +49,7 @@ import {
 } from '../game/speedBonus';
 import { IN_GAME_BOOSTER_COSTS } from '../game/storage';
 import {
+  BOTTLE_CAPACITY,
   type Bottle,
   type CgTier,
   type LevelSpec,
@@ -686,14 +693,17 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         return;
       }
 
-      playPickupClink(profile.soundEnabled);
+      const bottleIdx = bottles.findIndex((b) => b.id === bottleId);
+      const stereoPan =
+        bottles.length > 1 ? ((bottleIdx / (bottles.length - 1)) * 2 - 1) * 0.28 : 0;
+      playPickupClink(profile.soundEnabled, stereoPan);
       triggerSemanticHaptic(profile.hapticsEnabled, 'pickup');
       setSelectedId(bottleId);
       return;
     }
 
     if (selectedId === bottleId) {
-      playPickupClink(profile.soundEnabled);
+      playUiClick(profile.soundEnabled, 'close');
       triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
       setSelectedId(null);
       return;
@@ -718,7 +728,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           targetBeforeCount
         );
 
-        playPourSound(profile.soundEnabled, outcome.pouredCount);
+        const targetFillRatio = targetBeforeCount / BOTTLE_CAPACITY;
+        playPourSound(profile.soundEnabled, outcome.pouredCount, targetFillRatio);
         triggerSemanticHaptic(profile.hapticsEnabled, 'pour');
 
         if (outcome.completedTarget) {
@@ -727,6 +738,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             profile.soundEnabled,
             profile.hapticsEnabled
           );
+        }
+
+        if (outcome.revealedHidden) {
+          setTimeout(() => {
+            playMysteryReveal(profile.soundEnabled);
+          }, 210);
         }
 
         if (outcome.unlockedCork) {
@@ -833,7 +850,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setHistory((h) => h.slice(0, -1));
     setBottles(prev);
     setSelectedId(null);
-    playPickupClink(profile.soundEnabled);
+    playUndoSound(profile.soundEnabled);
     triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
     pushReaction(
       'fox',
@@ -860,7 +877,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setHistory((h) => [...h, cloneBottles(bottles)]);
     setBottles((curr) => applyShuffleBooster(curr, Date.now()));
     setSelectedId(null);
-    playObstacleUnlockSound(profile.soundEnabled, 'curtain');
+    playShuffleSound(profile.soundEnabled);
     triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
     pushReaction(
       'dragon',
@@ -892,7 +909,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     cancelPourAnimation();
     setBottles((curr) => addExtraFlaskBooster(curr));
     setSelectedId(null);
-    playBottleComplete(profile.soundEnabled, 0);
+    playAddBottleSound(profile.soundEnabled);
     triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
     pushReaction(
       'dragon',
@@ -901,6 +918,28 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         : t('reactExtraFlaskAdded')
     );
   };
+
+  // Real-time BGM climax escalation when only 1-2 unfinished bottles remain
+  useEffect(() => {
+    const remainingBottles = bottles.filter(
+      (b) =>
+        b.layers.length > 0 &&
+        !(
+          b.layers.length === BOTTLE_CAPACITY &&
+          b.layers.every((l) => !l.hidden && l.color === b.layers[0].color)
+        )
+    ).length;
+
+    setBgmMood(
+      resolveGameplayBgmMood({
+        inGameplay: true,
+        difficulty: level.difficulty,
+        isTrial: isTrialMode,
+        streak: profile.streak,
+        remainingBottles,
+      })
+    );
+  }, [bottles, level.difficulty, isTrialMode, profile.streak]);
 
   const difficultyLabel =
     level.difficulty === 'super_hard'

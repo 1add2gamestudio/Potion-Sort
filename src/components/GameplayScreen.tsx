@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Clock, Flame, Sparkles, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import {
   addExtraFlaskBooster,
   applyShuffleBooster,
@@ -42,11 +42,6 @@ import {
   type PourTimelineState,
 } from '../game/pourAnimation';
 import { SEAL_DURATION_MS, SEAL_TRIGGER_DELAY_MS } from '../game/sealAnimation';
-import {
-  computeTargetTimeSec,
-  evaluateSpeedBonus,
-  formatCountdown,
-} from '../game/speedBonus';
 import { IN_GAME_BOOSTER_COSTS } from '../game/storage';
 import {
   computeOnboardingGuide,
@@ -64,7 +59,7 @@ import {
   type TutorialTipId,
 } from '../game/types';
 import { LIQUID_3D_PALETTES } from './bottleDesigns';
-import { CabinetMascots } from './CabinetMascots';
+import { CabinetMascots, type MascotSpeech } from './CabinetMascots';
 import { CrystalBottle } from './CrystalBottle';
 import {
   Coin3DIcon,
@@ -92,12 +87,6 @@ interface ActivePourState {
   targetBeforeCount: number;
   geom: MagicSortPourGeometry;
   timeline: PourTimelineState;
-}
-
-interface CompanionReaction {
-  id: number;
-  who: 'fox' | 'dragon';
-  text: string;
 }
 
 interface ObstacleUnlockBurst {
@@ -144,9 +133,6 @@ interface GameplayScreenProps {
   onVictory: (stats: {
     moves: number;
     elapsedSec: number;
-    targetSec: number;
-    speedBonusPoints: number;
-    speedBonusCoins: number;
     bottlesCount: number;
   }) => void;
   onGiveUp: (stats: { completedBottles: number; totalBottles: number }) => void;
@@ -206,16 +192,14 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   onGiveUp,
   onMarkTutorialSeen,
 }) => {
-  const { t, colorName, potionOrderName, mechanicName } = useI18n();
-
-  const targetSec = useMemo(() => computeTargetTimeSec(level), [level]);
+  const { t, colorName, mechanicName } = useI18n();
 
   const [bottles, setBottles] = useState<Bottle[]>(() => cloneBottles(level.bottles));
   const [history, setHistory] = useState<Bottle[][]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [shakeBottleId, setShakeBottleId] = useState<string | null>(null);
   const [moves, setMoves] = useState(0);
-  const [elapsedSec, setElapsedSec] = useState(0);
+  const [, setElapsedSec] = useState(0);
   const [freeStreakUndos, setFreeStreakUndos] = useState(0);
   const [activePour, setActivePour] = useState<ActivePourState | null>(null);
   const [sealVisuals, setSealVisuals] = useState<
@@ -227,11 +211,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const [hudCoinBonus, setHudCoinBonus] = useState(0);
   const [coinPopTick, setCoinPopTick] = useState(0);
   const [mascotCheering, setMascotCheering] = useState(false);
-  const [reaction, setReaction] = useState<CompanionReaction>({
-    id: 1,
-    who: 'fox',
-    text: '',
-  });
+  const [reaction, setReaction] = useState<MascotSpeech | null>(null);
   const [activeMechanicTip, setActiveMechanicTip] = useState<MechanicTipId | null>(null);
 
   const wonRef = useRef(false);
@@ -242,6 +222,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const burstSeqRef = useRef(1);
   const cheerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cheerDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reactionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reactionSeqRef = useRef(1);
   const victoryTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const fxTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const lastContinueTickRef = useRef(continueGrantTick);
@@ -547,6 +529,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       clearMascotCheerTimers();
       clearVictoryTimers();
       clearFxTimers();
+      if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
       if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
       Object.values(sealHandlesRef.current).forEach((handle) => {
         if (handle.timer) clearTimeout(handle.timer);
@@ -556,8 +539,27 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     };
   }, []);
 
-  const pushReaction = (who: 'fox' | 'dragon', text: string) => {
-    setReaction((prev) => ({ id: prev.id + 1, who, text }));
+  const clearReaction = () => {
+    if (reactionTimerRef.current) {
+      clearTimeout(reactionTimerRef.current);
+      reactionTimerRef.current = null;
+    }
+    setReaction(null);
+  };
+
+  const pushReaction = (who: 'fox' | 'dragon', text: string, durationMs = 4200) => {
+    if (reactionTimerRef.current) {
+      clearTimeout(reactionTimerRef.current);
+      reactionTimerRef.current = null;
+    }
+    const id = ++reactionSeqRef.current;
+    setReaction({ id, who, text });
+    if (durationMs > 0) {
+      reactionTimerRef.current = setTimeout(() => {
+        setReaction((curr) => (curr && curr.id === id ? null : curr));
+        reactionTimerRef.current = null;
+      }, durationMs);
+    }
   };
 
   // In-place Continue (+1 Extra Flask) after Defeat — preserves all solved bottles & progress!
@@ -580,6 +582,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     clearMascotCheerTimers();
     clearVictoryTimers();
     clearFxTimers();
+    clearReaction();
     setMascotCheering(false);
     setObstacleBursts([]);
     setVictoryFlyTokens([]);
@@ -595,16 +598,14 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setFreeStreakUndos(profile.streak >= 3 ? 1 : 0);
     const unseenTip = detectUnseenMechanicTip(fresh, profile.seenTutorials);
     setActiveMechanicTip(unseenTip);
+
     const isFirstTimeBasics =
       !isTrialMode && level.levelNumber === 1 && !profile.seenTutorials.includes('basics');
-    pushReaction(
-      'fox',
-      isFirstTimeBasics
-        ? t('tutorialBasicsHint')
-        : level.mechanicsIntroduced[0]
-        ? t('reactNewCraft', { name: mechanicName(level.mechanicsIntroduced[0]) })
-        : t('reactOrderUp', { name: potionOrderName(level.potionOrderName) })
-    );
+    if (isFirstTimeBasics) {
+      pushReaction('fox', t('tutorialBasicsHint'), 6000);
+    } else if (!unseenTip && level.mechanicsIntroduced[0]) {
+      pushReaction('fox', t('reactNewCraft', { name: mechanicName(level.mechanicsIntroduced[0]) }));
+    }
 
     if (profile.streak >= 1 && !isTrialMode) {
       const timer = setTimeout(() => {
@@ -827,9 +828,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           if (!isTrialMode && level.levelNumber === 1 && !profile.seenTutorials.includes('basics')) {
             onMarkTutorialSeen?.('basics');
           }
-          pushReaction('dragon', t('reactLevelComplete', { name: potionOrderName(level.potionOrderName) }));
+          pushReaction('dragon', t('reactLevelComplete', { name: headerLevelTitle }), 3500);
           const finalElapsedSec = Math.max(1, elapsedSecRef.current);
-          const speedBonus = evaluateSpeedBonus(finalElapsedSec, targetSec, level.difficulty);
           const victoryTier = resolveVictoryCgTier({
             streakAfterWin: isTrialMode ? profile.streak : profile.streak + 1,
             difficulty: level.difficulty,
@@ -844,7 +844,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             triggerMascotCheer(1900, 0);
             triggerVictoryEffect(victoryTier);
             launchVictoryFlyInTokens(
-              (isTrialMode ? 60 : level.rewardCoins) + speedBonus.bonusCoins,
+              isTrialMode ? 60 : level.rewardCoins,
               profile.soundEnabled
             );
           }, flyStartDelay);
@@ -854,9 +854,6 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
             onVictory({
               moves: moves + 1,
               elapsedSec: finalElapsedSec,
-              targetSec,
-              speedBonusPoints: speedBonus.bonusPoints,
-              speedBonusCoins: speedBonus.bonusCoins,
               bottlesCount: level.colorCount,
             });
           }, modalOpenDelay);
@@ -1301,7 +1298,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           </div>
         </div>
 
-        {/* Royal Purple-Gold Level Capsule + Potion Order Ribbon */}
+        {/* Royal Purple-Gold Level Capsule */}
         <div className="flex flex-col items-center">
           <div className="candy-btn-purple-pill px-7 py-2 flex items-center gap-2">
             <span className="font-game-display text-[17px] leading-none font-bold text-[#FFE96B] game-stroke-sm whitespace-nowrap">
@@ -1319,87 +1316,40 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
               </span>
             )}
           </div>
-
-          <div className="mt-1 px-3 py-0.5 rounded-full bg-[#FFF8E6]/95 border-2 border-[#EFA929] shadow-sm flex items-center gap-2 text-[10px] font-black text-[#592604] font-tabular">
-            <span className="text-[#6D23E8] flex items-center gap-1 whitespace-nowrap">
-              <Sparkles className="w-3 h-3 text-[#EA7607]" />
-              {potionOrderName(level.potionOrderName)}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span className="whitespace-nowrap">{t('movesCount', { n: moves })}</span>
-            <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center gap-0.5 text-[#C44606]">
-              <Flame className="w-3 h-3 text-[#E81938] fill-[#FF5A26]" />
-              {profile.streak}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span
-              title={t('speedTimerTooltip')}
-              aria-label={`${t('speedTimerTooltip')} ${formatCountdown(Math.max(0, targetSec - elapsedSec))}`}
-              className={`inline-flex items-center gap-0.5 whitespace-nowrap transition-colors duration-300 ${
-                targetSec - elapsedSec <= 0
-                  ? 'text-[#9B7A54]/80'
-                  : targetSec - elapsedSec <= 10
-                  ? 'text-[#C8371E]'
-                  : 'text-[#0E7D68]'
-              }`}
-            >
-              <Clock className="w-3 h-3" />
-              {formatCountdown(Math.max(0, targetSec - elapsedSec))}
-            </span>
-          </div>
         </div>
 
-        {/* Mascot Companion Bubble / Stuck Options Banner */}
-        <div className="flex flex-col items-center gap-1.5 w-full">
-          {stuck ? (
-            <div className="animate-mascot-cheer flex items-center gap-2 px-3 py-1 rounded-full bg-[#D91634] border-2 border-[#FFE875] text-white text-xs font-black shadow-md">
-              <img
-                src={solsticeDragonAvatarImg}
-                alt="Sky dragon companion"
-                referrerPolicy="no-referrer"
-                className="w-6 h-6 rounded-full border-2 border-[#FFE875] object-cover shrink-0"
-              />
-              <span className="whitespace-nowrap">{t('noPoursLeft')}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  playUiClick(profile.soundEnabled);
-                  triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
-                  onGiveUp({
-                    completedBottles: bottles.filter(
-                      (b) =>
-                        b.layers.length === 4 &&
-                        b.layers.every((l) => !l.hidden && l.color === b.layers[0].color)
-                    ).length,
-                    totalBottles: level.colorCount,
-                  });
-                }}
-                className="px-2.5 py-0.5 rounded-full bg-[#FFE259] text-[#4D1D00] text-[10px] font-black cursor-pointer whitespace-nowrap"
-              >
-                {t('optionsBtn')}
-              </button>
-            </div>
-          ) : (
-            <div
-              key={reaction.id}
-              className="animate-mascot-cheer inline-flex items-center gap-1.5 pl-1 pr-3 py-0.5 rounded-full bg-[#FFF9EA]/95 border-2 border-[#EFA929] shadow-[0_3px_0_rgba(92,42,4,0.2)] max-w-[325px]"
-            >
-              <img
-                src={
-                  reaction.who === 'fox'
-                    ? solsticeMascotAvatarImg
-                    : solsticeDragonAvatarImg
-                }
-                alt={reaction.who === 'fox' ? 'Fox alchemist' : 'Sky dragon'}
-                referrerPolicy="no-referrer"
-                className="w-6 h-6 rounded-full border-2 border-[#7126E8] object-cover shrink-0"
-              />
-              <span className="text-[11px] font-black text-[#4E2305] truncate">
-                {reaction.text}
-              </span>
-            </div>
-          )}
+        {/* Stuck Deadlock Banner & First-Encounter Mechanic Tip */}
+        {(stuck || activeMechanicTip) && (
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            {stuck && (
+              <div className="animate-mascot-cheer flex items-center gap-2 px-3 py-1 rounded-full bg-[#D91634] border-2 border-[#FFE875] text-white text-xs font-black shadow-md">
+                <img
+                  src={solsticeDragonAvatarImg}
+                  alt="Sky dragon companion"
+                  referrerPolicy="no-referrer"
+                  className="w-6 h-6 rounded-full border-2 border-[#FFE875] object-cover shrink-0"
+                />
+                <span className="whitespace-nowrap">{t('noPoursLeft')}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playUiClick(profile.soundEnabled);
+                    triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+                    onGiveUp({
+                      completedBottles: bottles.filter(
+                        (b) =>
+                          b.layers.length === 4 &&
+                          b.layers.every((l) => !l.hidden && l.color === b.layers[0].color)
+                      ).length,
+                      totalBottles: level.colorCount,
+                    });
+                  }}
+                  className="px-2.5 py-0.5 rounded-full bg-[#FFE259] text-[#4D1D00] text-[10px] font-black cursor-pointer whitespace-nowrap"
+                >
+                  {t('optionsBtn')}
+                </button>
+              </div>
+            )}
 
           {/* First-Encounter Mechanic Tip Banner (Non-Blocking) */}
           {!stuck && activeMechanicTip && (
@@ -1447,13 +1397,20 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
               </button>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </header>
 
-      {/* TWO 3D MASCOTS SEATED ON TOP CABINET CORNICE LEDGE */}
+      {/* TWO 3D MASCOTS SEATED ON TOP CABINET CORNICE LEDGE + CLOUD SPEECH BUBBLE */}
       <CabinetMascots
         cheering={mascotCheering}
-        onTriggerPreviewCheer={() => triggerMascotCheer(1600, 0)}
+        speech={!stuck && !activeMechanicTip ? reaction : null}
+        onTriggerPreviewCheer={(who) => {
+          playUiClick(profile.soundEnabled);
+          triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+          triggerMascotCheer(1600, 0);
+          pushReaction(who, who === 'fox' ? t('reactFoxCheer') : t('reactDragonCheer'), 3400);
+        }}
       />
 
       {/* CALIBRATED 3D SHELF-ALIGNED BOTTLE STAGE */}

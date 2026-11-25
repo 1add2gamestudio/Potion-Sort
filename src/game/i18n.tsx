@@ -56,11 +56,13 @@ const ZH = {
   reactExtraFlaskAdded: '小龙送来了一只崭新的水晶空瓶！',
   reactNotEnoughCoins: '金币不足，需要 {cost} 金币！',
   reactBoughtBooster: '花费 {cost} 金币立即补充了道具！',
+  reactFoxCheer: '加油哦！把同色魔药倒在一起吧～',
+  reactDragonCheer: '嗷呜！这局一定能轻松通关！',
 
   // Modals — Paused
   pauseTitle: '游戏已暂停',
   pauseStreakWarn: '当前连胜 x{n}（重开将重置连胜并消耗 1 点体力）',
-  pauseRelaxTip: '轻松畅玩——倒计时归零不会失败，规定时间内通关还可赢得速通加分。',
+  pauseRelaxTip: '轻松畅玩——不限步数、不限时间，享受纯粹的调色解谜。',
   resumeBtn: '继续游戏',
   restartLevelBtn: '重开本关（-1 体力）',
   soundOn: '音效开启',
@@ -302,11 +304,13 @@ const EN: Record<I18nKey, string> = {
   reactExtraFlaskAdded: 'Brought a fresh crystal flask!',
   reactNotEnoughCoins: 'Need {cost} Coins!',
   reactBoughtBooster: 'Spent {cost} Coins for +1 booster!',
+  reactFoxCheer: 'You got this! Match the colors!',
+  reactDragonCheer: 'Rawr! Let us clear this brew!',
 
   // Modals — Paused
   pauseTitle: 'Game Paused',
   pauseStreakWarn: 'Active Streak: x{n} (Restarting resets streak & uses 1 life)',
-  pauseRelaxTip: 'Relax — reaching 0:00 never fails; beat the target time for bonus points.',
+  pauseRelaxTip: 'Relax — no move limits or timers, just pure cozy sorting.',
   resumeBtn: 'Resume',
   restartLevelBtn: 'Restart Level (-1 Life)',
   soundOn: 'Sound On',

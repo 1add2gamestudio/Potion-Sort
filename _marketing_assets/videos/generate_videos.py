@@ -391,22 +391,22 @@ def get_specs() -> list[VideoSpec]:
                 ),
             ],
         ),
-        # 4. Speed Bonus, Streak & Sun Alembic (18s)
+        # 4. No-Timer Puzzle, Streak & Sun Alembic (18s)
         VideoSpec(
-            filename="video_04_speed_streak_alembic.mp4",
+            filename="video_04_streak_alembic.mp4",
             chord_hz=(349.23, 440.00, 523.25),  # F major heroic warm chord
             sfx_times=[1.0, 5.5, 10.0, 14.5],
             shots=[
                 Shot(
                     "images/stage_c_fullwidth_1794988696753.jpg", 4.5, "zoom_in",
-                    "SPEED BONUS TIMER", "BEAT 60 SECONDS",
-                    "Earn +25 Extra Coins for Rapid Clears!",
+                    "NO TIMER, NO RUSH", "THINK AS LONG AS YOU LIKE",
+                    "No countdown, no move limit on any level.",
                     ["ui/icon-coin.png", "ui/icon-flask.png"],
                 ),
                 Shot(
                     "cg/victory-tier-2.jpg", 4.5, "pan_left",
                     "SOLSTICE STREAK", "IGNITE YOUR STREAK",
-                    "3/5/8 Win Chains Grant Free Starting Boosters",
+                    "1/2/3 Win Streaks Auto-Pour Your Opening Move",
                     ["ui/icon-streak-flame.png"], "mascots/dragon_clap.png", "right",
                 ),
                 Shot(

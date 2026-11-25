@@ -1,6 +1,7 @@
 # Potion Sort（药水排序）核心卖点与二级介绍（4 组）
 
 > 用途规范：每组严格遵循「**主标题（中文 ≤8 字） + 副标题（中文 ≤15 字） + 详细说明（50–100 字）**」结构，并附对应英文版，可直接套用于 App Store 宣传图配字及官网分屏模块。
+> ⚠️ 当前版本**无倒计时 / 无速通加分**，任何一组都不得再出现「限时」「倒计时」「Speed Bonus」字样。
 
 ---
 
@@ -20,26 +21,26 @@
 ## 卖点 02：关卡策略与四大机关
 
 - **主标题（8字）**：四大机关步步烧脑
-- **副标题（14字）**：100% 校验可解的锯齿难度曲线
-- **详细说明（84字）**：所有关卡均经求解器验证，保证零道具也能逻辑破局。神秘「?」色层、软木塞封口、彩锁木箱与丝绒帘幕轮番登场，配合限时速通倒计时奖励与波浪式难度起伏，既过瘾又绝不卡死。
+- **副标题（15字）**：零倒计时，100% 校验可解
+- **详细说明（86字）**：所有关卡均经求解器验证，保证零道具也能逻辑破局。神秘「?」色层、软木塞封口、彩锁木箱与丝绒帘幕轮番登场。全程不设倒计时与步数上限，愿意想多久就想多久，既过瘾又绝不卡死。
 
 **English Adaptation**
 - **Headline**: 4 Tactical Obstacles
-- **Subhead**: 100% solver-verified sawtooth difficulty curve
-- **Body**: Every campaign level is proven solvable without boosters. Master Mystery "?" layers, Corked decanters, Color Crates, and Velvet Curtains while racing subtle Speed Bonus timers for extra coins.
+- **Subhead**: No timer, and 100% solver-verified
+- **Body**: Every campaign level is proven solvable without boosters. Master Mystery "?" layers, Corked decanters, Color Crates, and Velvet Curtains — with no countdown and no move limit, so you can take all the time you need.
 
 ---
 
 ## 卖点 03：角色陪伴与 CG 图鉴
 
-- **主标题（7字）**：萌宠陪玩藏画卷
-- **副标题（15字）**：解锁 6 幅连胜与翻车动态 CG
-- **详细说明（82字）**：狐狸炼金师与蓝翼小龙驻守药柜顶端，随时为你欢呼鼓掌。不同连胜阶位与趣味失手都会触发专属三阶结算画面，解锁后自动收录进成就图鉴，支持随时全屏回味并领取丰厚金币奖励。
+- **主标题（7字）**：萌宠陪玩会说话
+- **副标题（15字）**：解锁 6 幅连胜与翻车画卷
+- **详细说明（88字）**：狐狸炼金师与蓝翼小龙驻守药柜顶端，封瓶即为你欢呼鼓掌；点一下它们，云朵气泡里会冒出各自的鼓励台词。不同连胜阶位与趣味失手还会触发专属结算画面，解锁后自动收录进成就图鉴，支持全屏回味。
 
 **English Adaptation**
-- **Headline**: Cozy Mascots & CGs
-- **Subhead**: Collect 6 animated victory & defeat artworks
-- **Body**: The Fox Alchemist and Sky Dragon cheer from atop your shelves after every sealed flask. Trigger 3 victory tiers and 3 comedic defeat moments, unlocking fullscreen CG artworks and coin rewards in your Codex.
+- **Headline**: Mascots That Talk
+- **Subhead**: Collect 6 victory & defeat artworks
+- **Body**: The Fox Alchemist and Sky Dragon cheer from atop your shelves after every sealed flask — tap either one and a cloud bubble pops up with their own lines. Three victory tiers and three comedic defeat moments unlock fullscreen artworks in your Codex.
 
 ---
 
@@ -52,4 +53,4 @@
 **English Adaptation**
 - **Headline**: Brew Boosters & Prizes
 - **Subhead**: Sun Alembic crafting, Trials & 7-Day Calendar
-- **Body**: Gather four conservatory essences to craft Undo, Shuffle, and Extra Flask boosters at the Sun Alembic. Climb the 100-star Azure Gala track, jump into obstacle Trials, and mark off the 7-Day Login Calendar for the Day 7 Jackpot.
+- **Body**: Gather four conservatory essences to craft Undo, Shuffle, and Extra Flask boosters at the Sun Alembic. Climb the Azure Gala star track, jump into obstacle Trials, and mark off the 7-Day Login Calendar for the Day 7 Jackpot.

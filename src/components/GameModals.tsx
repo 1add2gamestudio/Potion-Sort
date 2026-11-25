@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Award, CheckCircle2, Crown, Eye, Gift, Play, Sparkles, Tv, Vibrate, Zap } from 'lucide-react';
+import { Award, CheckCircle2, Crown, Eye, Gift, Play, Sparkles, Tv, Vibrate } from 'lucide-react';
 import type { AdRequest } from '../game/adService';
 import { MONETIZATION_ENABLED } from '../game/adService';
 import { getDailyCalendarStates, type DailyRewardGrant } from '../game/dailyReward';
@@ -38,15 +38,11 @@ import { OutcomeCgCard } from './OutcomeCgCard';
 export interface VictorySnapshot {
   levelNumber: number;
   levelTitle: string;
-  potionOrderName?: string;
   isTrial: boolean;
   trialId?: string | null;
   isPracticeReplay?: boolean;
   moves: number;
   elapsedSec: number;
-  targetSec?: number;
-  speedBonusPoints?: number;
-  speedBonusCoins?: number;
   coinsEarned: number;
   starsEarned: number;
   ingredient: IngredientId;
@@ -123,7 +119,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
   onSelectLanguage,
   onResetSave,
 }) => {
-  const { t, potionOrderName, ingredientName } = useI18n();
+  const { t, ingredientName } = useI18n();
   const [adSecondsLeft, setAdSecondsLeft] = useState(2);
   const [hapticJustTested, setHapticJustTested] = useState(false);
 
@@ -263,9 +259,6 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 {victorySnapshot.isTrial
                   ? victorySnapshot.levelTitle
                   : t('levelCta', { n: victorySnapshot.levelNumber })}
-                {victorySnapshot.potionOrderName
-                  ? ` · ${potionOrderName(victorySnapshot.potionOrderName)}`
-                  : ''}
               </div>
             </div>
 
@@ -318,18 +311,6 @@ export const GameModals: React.FC<GameModalsProps> = ({
                   {t('rewardEssence', { name: ingredientName(victorySnapshot.ingredient, true) })}
                 </span>
               </div>
-
-              {victorySnapshot.speedBonusPoints && victorySnapshot.speedBonusPoints > 0 && (
-                <div className="rounded-xl px-2.5 py-1.5 bg-[#E6FAF4] border border-[#6BD4B7] text-[11px] font-black text-[#0B6B58] flex items-center justify-center gap-1.5 font-tabular">
-                  <Zap className="w-3.5 h-3.5 text-[#0E9F84] fill-[#34D399] shrink-0" />
-                  <span>
-                    {t('speedBonusBadge', {
-                      pts: victorySnapshot.speedBonusPoints,
-                      coins: victorySnapshot.speedBonusCoins ?? 0,
-                    })}
-                  </span>
-                </div>
-              )}
 
               {victorySnapshot.isPracticeReplay && (
                 <div className="rounded-xl px-2.5 py-1 bg-[#FFF3D1] border border-[#E6B85C] text-[10px] font-bold text-[#7A440B] text-center">

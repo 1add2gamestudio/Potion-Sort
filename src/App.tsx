@@ -431,9 +431,6 @@ export default function App() {
   const handleVictory = (stats: {
     moves: number;
     elapsedSec: number;
-    targetSec: number;
-    speedBonusPoints: number;
-    speedBonusCoins: number;
   }) => {
     const trialMeta = activeTrialId
       ? EVENT_TRIALS.find((t) => t.id === activeTrialId)
@@ -465,7 +462,7 @@ export default function App() {
       : isPracticeReplay
       ? 15
       : activeLevel.rewardCoins;
-    const coinsEarned = baseCoins + stats.speedBonusCoins;
+    const coinsEarned = baseCoins;
     const ingredient = activeLevel.rewardIngredient;
 
     // Only campaign frontier clears advance the win streak (prevents Level-1 streak farming)
@@ -516,15 +513,11 @@ export default function App() {
     setVictorySnap({
       levelNumber: activeLevel.levelNumber,
       levelTitle: localizedTrialTitle,
-      potionOrderName: activeLevel.potionOrderName,
       isTrial,
       trialId: activeTrialId,
       isPracticeReplay,
       moves: stats.moves,
       elapsedSec: stats.elapsedSec,
-      targetSec: stats.targetSec,
-      speedBonusPoints: stats.speedBonusPoints,
-      speedBonusCoins: stats.speedBonusCoins,
       coinsEarned,
       starsEarned,
       ingredient,

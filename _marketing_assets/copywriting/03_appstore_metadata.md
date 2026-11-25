@@ -1,4 +1,4 @@
-# Solstice Sort（日光炼金瓶）App Store 上架元数据清单
+# Potion Sort（药水排序）App Store 上架元数据清单
 
 ---
 
@@ -6,8 +6,8 @@
 
 | 区域 | 主标题（≤30 字符） | 副标题（≤30 字符） |
 | :--- | :--- | :--- |
-| **English (Primary / Global)** | `Solstice Sort: Potion Puzzle`（28 chars） | `Cozy ASMR Crystal Liquid Sort`（29 chars） |
-| **简体中文（中国区）** | `日光炼金瓶 - 治愈魔药分色解谜`（15 字） | `ASMR 倒液解压与萌宠炼金工坊`（15 字） |
+| **English (Primary / Global)** | `Potion Sort: Alchemy`（20 chars） | `Cozy ASMR Crystal Liquid Sort`（29 chars） |
+| **简体中文（中国区）** | `药水排序 - 治愈魔药分色解谜`（15 字） | `ASMR 倒液解压与萌宠炼金工坊`（15 字） |
 
 - **主类别（Primary Category）**：Games → Puzzle（解谜）
 - **次类别（Secondary Category）**：Games → Casual（休闲）
@@ -45,7 +45,7 @@ water sort,potion puzzle,color sort,liquid sort,asmr,relaxing,brain teaser,cozy 
 
 ### v1.0.0 首发版本（English）
 ```text
-Welcome to Solstice Sort!
+Welcome to Potion Sort!
 - Sunlit Conservatory Art & Tactile ASMR Pouring: Enjoy real bottle-glug audio and cheering Fox & Sky Dragon mascots.
 - 100% Solvable Strategy: Progress across the Golden Wave difficulty curve with Mystery "?" layers, Corks, Color Crates, and Velvet Curtains.
 - Speed Bonus & Streaks: Beat level countdown targets for bonus coins and stack Solstice Win Streaks.
@@ -55,7 +55,7 @@ Welcome to Solstice Sort!
 
 ### v1.0.0 首发版本（简体中文）
 ```text
-欢迎来到《日光炼金瓶》暖阳花房工坊！
+欢迎来到《药水排序》暖阳花房工坊！
 - 治愈视听与萌宠伴随：真实 ASMR 倾倒水声搭配 3D 质感水晶瓶，狐狸炼金师与蓝翼小龙全程为你鼓掌。
 - 100% 校验可解关卡：黄金锯齿难度曲线，逐步解锁神秘色层、软木塞、彩锁木箱与丝绒帘幕四大机关。
 - 限时速通与连胜祝福：在目标倒计时内通关斩获额外金币，延续连胜解锁开局增益。
@@ -77,10 +77,10 @@ What's New in v1.X.X:
 ## 五、 隐私政策与技术支持页文案框架（满足 App Store 审核要求）
 
 ### 1. 隐私政策框架（Privacy Policy — 对应官网 `#privacy` 弹窗/锚点）
-- **数据收集原则**：《日光炼金瓶（Solstice Sort）》是一款尊重玩家隐私的轻度单机休闲游戏。您的关卡进度、金币道具、成就图鉴、签到记录与音效偏好均仅存储在您设备的本地存储（Local Storage）中，无需注册账号，亦不收集您的姓名、手机号、精确地理位置或通讯录信息。
+- **数据收集原则**：《药水排序（Potion Sort）》是一款尊重玩家隐私的轻度单机休闲游戏。您的关卡进度、金币道具、成就图鉴、签到记录与音效偏好均仅存储在您设备的本地存储（Local Storage）中，无需注册账号，亦不收集您的姓名、手机号、精确地理位置或通讯录信息。
 - **广告与内购合规**：若未来接入第三方合规广告聚合 SDK（用于可选激励视频与关卡间插屏）或 Apple StoreKit（用于「永久去广告」非消耗型内购），相关交易由 Apple 官方安全处理；未满法定年龄用户不开启个性化广告追踪（严格遵循 ATT 弹窗授权规范）。
 - **本地数据删除权**：您可随时在游戏内「设置 → 重置本地游戏进度」一键清除全部本地存档，或直接卸载应用以彻底移除本地数据。
-- **联系隐私负责人**：`privacy@solsticesort.com`（上线前替换为开发者真实域名邮箱）。
+- **联系隐私负责人**：`privacy@potionsort.com`（上线前替换为开发者真实域名邮箱）。
 
 ### 2. 技术支持页框架（Support URL — 对应官网 `#support` 板块）
 - **常见问题（FAQ）**：
@@ -88,6 +88,6 @@ What's New in v1.X.X:
   2. **购买「永久去广告」包含哪些内容？** 一次解锁永久移除所有关卡间强制插屏广告；您依然可以自主选择观看可选激励短片来领取双倍金币或额外空瓶。切换设备后可通过「恢复购买（Restore Purchases）」找回权益。
   3. **如何开启色盲辅助模式或关闭震动？** 点击主界面或局内右上角齿轮图标进入「设置」，可随时开关色盲药水符号、背景音乐、音效与手机震动反馈，并支持中英文实时切换。
 - **客服与反馈渠道**：
-  - 官方支持邮箱：`support@solsticesort.com`
+  - 官方支持邮箱：`support@potionsort.com`
   - 响应时效：工作日 24–48 小时内回复
   - 反馈建议附带信息：设备型号、iOS/系统版本、当前关卡号及问题截图。

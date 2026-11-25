@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Solstice Sort — Batch Social & App Store Graphics Generator (20 Sets)
+Potion Sort — Batch Social & App Store Graphics Generator (20 Sets)
 ---------------------------------------------------------------------
 Generates 20 production-ready base marketing posters into ./output/post_01.png .. post_20.png
 using real project artwork from ../raw_assets/ and system ImageMagick (`convert`).
@@ -125,7 +125,7 @@ def add_header_text(
     return args
 
 
-def add_footer_brand(w: int, h: int, label: str = "SOLSTICE SORT  |  SUNLIT ALCHEMY PUZZLE") -> list[str]:
+def add_footer_brand(w: int, h: int, label: str = "POTION SORT  |  SUNLIT ALCHEMY PUZZLE") -> list[str]:
     fs = 26 if w >= 1200 else 22
     y_off = 48 if w >= 1200 else 38
     return [
@@ -175,7 +175,7 @@ def generate_all() -> None:
     p01 += add_header_text(
         W1,
         "SUNLIT ALCHEMY PUZZLE",
-        "SOLSTICE SORT",
+        "POTION SORT",
         "Pour, Match & Brew in a Cozy 3D Workshop",
         y_kicker=140, y_title=205, y_sub=355, title_size=112, sub_size=40, kicker_size=34,
     )
@@ -276,7 +276,7 @@ def generate_all() -> None:
         "(", asset("ui/icon-flask.png"), "-resize", "130x130", ")",
         "-gravity", "southwest", "-geometry", "+80+120", "-composite",
     ]
-    p06 += add_footer_brand(W2, H2, "SOLSTICE SORT  |  CHARACTER CODEX")
+    p06 += add_footer_brand(W2, H2, "POTION SORT  |  CHARACTER CODEX")
     jobs.append(("post_06.png", p06))
 
     # Post 07: Sky Dragon Profile
@@ -296,7 +296,7 @@ def generate_all() -> None:
         "(", asset("ui/icon-streak-flame.png"), "-resize", "130x130", ")",
         "-gravity", "southwest", "-geometry", "+80+120", "-composite",
     ]
-    p07 += add_footer_brand(W2, H2, "SOLSTICE SORT  |  CHARACTER CODEX")
+    p07 += add_footer_brand(W2, H2, "POTION SORT  |  CHARACTER CODEX")
     jobs.append(("post_07.png", p07))
 
     # Post 08: Victory CG Tiers 1-3 Strip
@@ -599,7 +599,7 @@ def generate_all() -> None:
         "(", asset("ui/icon-sound-on.png"), "-resize", "150x150", ")",
         "-gravity", "south", "-geometry", "+0+120", "-composite",
     ]
-    p17 += add_footer_brand(W3, H3, "HEADPHONES RECOMMENDED  |  SOLSTICE SORT")
+    p17 += add_footer_brand(W3, H3, "HEADPHONES RECOMMENDED  |  POTION SORT")
     jobs.append(("post_17.png", p17))
 
     # Post 18: Devlog Color-Blind Accessibility
@@ -654,7 +654,7 @@ def generate_all() -> None:
         "-annotate", "+0+150", "B",
         "-annotate", "+325+150", "C",
     ]
-    p19 += add_footer_brand(W3, H3, "DROP YOUR ANSWER BELOW  |  SOLSTICE SORT")
+    p19 += add_footer_brand(W3, H3, "DROP YOUR ANSWER BELOW  |  POTION SORT")
     jobs.append(("post_19.png", p19))
 
     # Post 20: Pure Ad-Free & App Store Launch Teaser
@@ -674,7 +674,7 @@ def generate_all() -> None:
         "(", asset("ui/icon-shield.png"), "-resize", "200x200", ")",
         "-gravity", "center", "-geometry", "+0+70", "-composite",
     ]
-    p20 += add_footer_brand(W3, H3, "SOLSTICE SORT  |  PRE-ORDER & FOLLOW")
+    p20 += add_footer_brand(W3, H3, "POTION SORT  |  PRE-ORDER & FOLLOW")
     jobs.append(("post_20.png", p20))
 
     print(f"Generating {len(jobs)} marketing graphics into {OUT_DIR} ...")

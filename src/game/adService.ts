@@ -1,5 +1,18 @@
 import type { PlayerProfile } from './types';
 
+/**
+ * MASTER MONETIZATION SWITCH
+ *
+ * false = 首发版状态：不接广告 SDK、不卖去广告内购。
+ *   - 强制插屏永远不会触发（不会出现「2 秒跳过」的模拟广告画面）
+ *   - 所有「看广告拿奖励」按钮、所有「$4.99 去广告」入口全部隐藏
+ *   - App Store Connect 里不要创建任何内购项目
+ *
+ * true  = 将来接入真实广告 SDK（AdMob 等）并配置好内购项目后，改为 true 即可全部恢复。
+ *         届时必须同步更新「App 隐私」披露（会变成收集数据）并加 ATT 弹窗。
+ */
+export const MONETIZATION_ENABLED = false;
+
 export type AdPlacementKind =
   | 'interstitial_next_level'
   | 'rewarded_life'

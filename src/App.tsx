@@ -24,6 +24,7 @@ import { resolveAndroidBackAction } from './game/androidBack';
 import {
   applyRemoveAdsPurchase,
   evaluateInterstitialPacing,
+  MONETIZATION_ENABLED,
   type AdRequest,
 } from './game/adService';
 import {
@@ -878,6 +879,12 @@ export default function App() {
       return;
     }
     const nextLvl = activeLevel.levelNumber + 1;
+    // 首发版无广告：直接进入下一关，不做任何插屏判定
+    if (!MONETIZATION_ENABLED) {
+      clearsSinceInterstitialRef.current = 0;
+      startCampaignLevel(nextLvl);
+      return;
+    }
     const pacing = evaluateInterstitialPacing({
       adsRemoved: profile.adsRemoved,
       clearedLevelNumber: activeLevel.levelNumber,

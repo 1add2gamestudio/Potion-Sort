@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Award, CheckCircle2, Crown, Eye, Gift, Play, Sparkles, Tv, Vibrate, Zap } from 'lucide-react';
 import type { AdRequest } from '../game/adService';
+import { MONETIZATION_ENABLED } from '../game/adService';
 import { getDailyCalendarStates, type DailyRewardGrant } from '../game/dailyReward';
 import { isNativeHapticsSupported, triggerSemanticHaptic } from '../game/haptics';
 import { useI18n } from '../game/i18n';
@@ -336,7 +337,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 </div>
               )}
 
-              {!profile.adsRemoved && (
+              {MONETIZATION_ENABLED && !profile.adsRemoved && (
                 <div className="rounded-xl px-2.5 py-1.5 bg-[#FFF3D1] border border-[#E6B85C] text-[10px] font-bold text-[#7A440B] flex items-center justify-between gap-2">
                   <span className="truncate">{t('adTipLine')}</span>
                   <button
@@ -366,7 +367,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 {victorySnapshot.isTrial ? t('backToFestivalBtn') : t('nextLevelBtn')}
               </button>
 
-              {!victorySnapshot.doubled && (
+              {MONETIZATION_ENABLED && !victorySnapshot.doubled && (
                 <button
                   type="button"
                   onClick={() => {
@@ -422,6 +423,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
 
             <div className="space-y-2">
               {/* Track 1: Rewarded Video Free Continue */}
+              {MONETIZATION_ENABLED && (
               <button
                 type="button"
                 onClick={() => {
@@ -436,6 +438,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 <Tv className="w-4 h-4 shrink-0" />
                 <span>{t('continueAdBtn')}</span>
               </button>
+              )}
 
               {/* Track 2: Flask / Coins Continue */}
               <button
@@ -501,6 +504,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
             </div>
 
             <div className="space-y-2">
+              {MONETIZATION_ENABLED && (
               <button
                 type="button"
                 disabled={profile.lives >= profile.maxLives}
@@ -516,6 +520,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 <Tv className="w-4 h-4 shrink-0" />
                 <span>{t('freeLifeAdBtn')}</span>
               </button>
+              )}
 
               <button
                 type="button"
@@ -687,6 +692,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
             </div>
 
             <div className="space-y-2">
+              {MONETIZATION_ENABLED && (
               <button
                 type="button"
                 disabled={profile.adsRemoved}
@@ -701,6 +707,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                   {profile.adsRemoved ? t('removeAdsOwned') : t('removeAdsBuy')}
                 </span>
               </button>
+              )}
 
               <button
                 type="button"

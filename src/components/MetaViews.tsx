@@ -5,6 +5,7 @@ import {
   getUnclaimedCgRewardCount,
   getUnclaimedCgRewardTotalCoins,
 } from '../game/achievements';
+import { MONETIZATION_ENABLED } from '../game/adService';
 import { triggerSemanticHaptic } from '../game/haptics';
 import { useI18n } from '../game/i18n';
 import { EVENT_TRIALS, getSawtoothProfile } from '../game/levelGenerator';
@@ -486,6 +487,7 @@ export const ShopView: React.FC<{
       onBack={onBack}
     >
       {/* Remove All Ads Featured Entitlement Card */}
+      {MONETIZATION_ENABLED && (
       <div className="candy-panel-frame p-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-sm font-black text-[#FFF9D6] game-stroke-xs">
@@ -514,6 +516,7 @@ export const ShopView: React.FC<{
           </button>
         )}
       </div>
+      )}
 
       {/* Booster Coin Packs */}
       {[

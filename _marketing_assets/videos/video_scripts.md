@@ -1,4 +1,4 @@
-# 《日光炼金瓶 Solstice Sort》宣传视频分镜脚本与剪辑表（5 套）
+# 《药水排序 Potion Sort》宣传视频分镜脚本与剪辑表（5 套）
 
 > **说明**：
 > - 所有视频均基于项目已有真实美术资产（3D 场景原画、6 张胜利/翻车 CG、萌宠立绘、3D UI 图标）与真实实录音效 `../raw_assets/sounds/asmr_bottle_glug.mp3` 合成，**无需运行游戏实机录屏**。
@@ -25,12 +25,12 @@
 
 | 镜号 | 时间轴 | 时长 | 调用素材（相对 `raw_assets/`） | 运镜方式 | 画面主/副字幕（EN / ZH） | 音效节点 |
 |---|---|---|---|---|---|---|
-| S1 | 00:00–00:04 | 4s | `images/solstice_home_3d_scene_1794980022597.jpg` + `mascots/fox_idle.png` | 缓慢推近（Zoom In 1.00→1.10） | `SOLSTICE SORT` / `欢迎来到日光温室炼金工坊` | 温暖和弦渐入 + 02s 倒水咕嘟声 |
+| S1 | 00:00–00:04 | 4s | `images/solstice_home_3d_scene_1794980022597.jpg` + `mascots/fox_idle.png` | 缓慢推近（Zoom In 1.00→1.10） | `POTION SORT` / `欢迎来到日光温室炼金工坊` | 温暖和弦渐入 + 02s 倒水咕嘟声 |
 | S2 | 00:04–00:08 | 4s | `images/stage_c_fullwidth_1794988696753.jpg` + `ui/icon-flask.png` | 缓慢拉远（Zoom Out 1.12→1.02） | `SILKY ASMR POURS` / `丝滑分色倾倒，清脆琉璃轻碰` | 06s 玻璃清脆音 |
 | S3 | 00:08–00:12 | 4s | `cg/victory-tier-1.jpg` + `mascots/dragon_clap.png` | 向右缓慢摇移（Pan Right） | `COZY 3D ALCHEMY` / `狐狸炼金师与蓝翼幼龙全程相伴` | 08s 魔药倾倒声 |
 | S4 | 00:12–00:16 | 4s | `cg/victory-tier-2.jpg` + `ui/icon-cauldron.png` | 居中轻推（Zoom In 1.00→1.10） | `4 CLEVER OBSTACLES` / `盲盒木塞木箱帘幕，百关严谨可解` | 14s 倒水咕嘟声 |
 | S5 | 00:16–00:20 | 4s | `cg/victory-tier-3.jpg` + `ui/icon-trophy.png` | 缓慢拉远展示全画幅（Zoom Out） | `COLLECT 6 CG CARDS` / `解锁胜利与爆笑翻车双系图鉴` | 19s 高潮倒水音 |
-| S6 | 00:20–00:24 | 4s | `images/solstice_home_3d_scene_1794980022597.jpg` + `mascots/fox_clap.png` + `mascots/dragon_clap.png` | 稳态微推定版（Slow Push） | `DOWNLOAD ON APP STORE` / `日光炼金瓶 · 开启你的阳光魔药时光` | 尾音渐弱收束 |
+| S6 | 00:20–00:24 | 4s | `images/solstice_home_3d_scene_1794980022597.jpg` + `mascots/fox_clap.png` + `mascots/dragon_clap.png` | 稳态微推定版（Slow Push） | `DOWNLOAD ON APP STORE` / `药水排序 · 开启你的阳光魔药时光` | 尾音渐弱收束 |
 
 ---
 
@@ -83,4 +83,4 @@
 |---|---|---|---|---|---|---|
 | S1 | 00:00–00:05 | 5s | `images/solstice_home_3d_scene_1794980022597.jpg` + `ui/icon-flask.png` | 慢推开门感 | `YOUR WORKSHOP AWAITS` / `阳光温室已点亮，等你推门赴约` | 01s 倒水钩子音 |
 | S2 | 00:05–00:10 | 5s | `cg/victory-tier-1.jpg` + `ui/icon-coin.png` | 居中拉远 | `7-DAY GRAND JACKPOT` / `连续签到 7 天，豪领 +250 金币与道具` | 06s 倒水声 |
-| S3 | 00:10–00:15 | 5s | `images/solstice_home_3d_scene_1794980022597.jpg` + `mascots/fox_clap.png` + `mascots/dragon_clap.png` | 稳态微推定版 | `SOLSTICE SORT` / `App Store 即将上线 · 立即预约` | 11s 倒水 + 渐弱 |
+| S3 | 00:10–00:15 | 5s | `images/solstice_home_3d_scene_1794980022597.jpg` + `mascots/fox_clap.png` + `mascots/dragon_clap.png` | 稳态微推定版 | `POTION SORT` / `App Store 即将上线 · 立即预约` | 11s 倒水 + 渐弱 |

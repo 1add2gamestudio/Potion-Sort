@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Solstice Sort — Automated Promo Video Synthesizer (5 Videos)
+Potion Sort — Automated Promo Video Synthesizer (5 Videos)
 ------------------------------------------------------------
 Synthesizes 5 ready-to-publish vertical 9:16 promo videos (720x1280, 25fps, H.264 + AAC)
 into ./output/ using real artwork & audio from ../raw_assets/, pre-installed ImageMagick
@@ -136,7 +136,7 @@ def render_shot_overlay(shot: Shot, out_png: Path) -> None:
     args += [
         "-gravity", "south",
         "-font", FONT_BOLD, "-pointsize", "18", "-fill", "rgba(246,201,94,0.85)",
-        "-annotate", "+0+32", "SOLSTICE SORT  |  SUNLIT ALCHEMY PUZZLE",
+        "-annotate", "+0+32", "POTION SORT  |  SUNLIT ALCHEMY PUZZLE",
     ]
 
     run_cmd(["convert"] + args + [str(out_png)], f"overlay {out_png.name}")
@@ -279,7 +279,7 @@ def get_specs() -> list[VideoSpec]:
             shots=[
                 Shot(
                     "images/solstice_home_3d_scene_1794980022597.jpg", 4.0, "zoom_in",
-                    "WELCOME TO THE WORKSHOP", "SOLSTICE SORT",
+                    "WELCOME TO THE WORKSHOP", "POTION SORT",
                     "A Cozy 3D Sunlit Alchemy Puzzle",
                     ["ui/icon-flask.png"], "mascots/fox_idle.png", "right",
                 ),
@@ -309,7 +309,7 @@ def get_specs() -> list[VideoSpec]:
                 ),
                 Shot(
                     "images/solstice_home_3d_scene_1794980022597.jpg", 4.0, "zoom_in",
-                    "COMING TO APP STORE", "PLAY SOLSTICE SORT",
+                    "COMING TO APP STORE", "PLAY POTION SORT",
                     "Pour, Relax & Brew Your Sunlit Story",
                     [], None, "both",
                 ),
@@ -386,7 +386,7 @@ def get_specs() -> list[VideoSpec]:
                 Shot(
                     "cg/victory-tier-1.jpg", 4.0, "zoom_out",
                     "ACHIEVEMENT CODEX", "COLLECT ALL 6 CARDS",
-                    "Unlock Every Memory in Solstice Sort",
+                    "Unlock Every Memory in Potion Sort",
                     ["ui/icon-trophy.png"], "mascots/fox_idle.png", "right",
                 ),
             ],
@@ -443,7 +443,7 @@ def get_specs() -> list[VideoSpec]:
                 ),
                 Shot(
                     "images/solstice_home_3d_scene_1794980022597.jpg", 5.0, "zoom_in",
-                    "APP STORE LAUNCH", "SOLSTICE SORT",
+                    "APP STORE LAUNCH", "POTION SORT",
                     "Pour, Match & Unwind — Play Today!",
                     [], None, "both",
                 ),

@@ -1,4 +1,4 @@
-# Solstice Sort（日光炼金瓶）项目资产与机制扫描清单
+# Potion Sort（药水排序）项目资产与机制扫描清单
 
 > 扫描基准：当前项目根目录真实代码逻辑、配置数据与静态美术/音效资产（已完整镜像备份至 `_marketing_assets/raw_assets/` 以保证营销包独立可移植）。
 
@@ -8,7 +8,7 @@
 
 | 维度 | 真实项目设定 |
 | :--- | :--- |
-| **游戏名称** | **Solstice Sort**（中文名：**日光炼金瓶** · 副标：Sunlit Crystal Sorting Puzzle / 暖阳花房工坊） |
+| **游戏名称** | **Potion Sort**（中文名：**药水排序** · 副标：Sunlit Crystal Sorting Puzzle / 暖阳花房工坊） |
 | **核心品类** | 竖屏治愈系魔药分色解谜（Casual Liquid-Sorting Puzzle） |
 | **默认语言** | 英文（`en`）默认，内置完整中英双语切换（`en` / `zh`） |
 | **主视觉色盘** | 皇家紫金（`#6B2DE0` / `#FFE875`）+ 暖阳奶油木纹（`#FFF6DF` / `#783A09`）+ 7 色高饱和魔药（Ruby Berry 红、Neon Lime 绿、Solar Gold 金、Cobalt Splash 蓝、Royal Grape 紫、Bubblegum Pink 粉、Aqua Mint 青） |

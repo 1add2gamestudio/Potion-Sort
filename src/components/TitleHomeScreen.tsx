@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Award, Gift } from 'lucide-react';
 import { CG_ACHIEVEMENTS } from '../game/achievements';
+import { MONETIZATION_ENABLED } from '../game/adService';
 import { isDailyRewardAvailable } from '../game/dailyReward';
 import { triggerSemanticHaptic } from '../game/haptics';
 import { useI18n } from '../game/i18n';
@@ -312,6 +313,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
           </div>
 
           {/* Remove Ads / Ad-Free Entitlement Badge */}
+          {MONETIZATION_ENABLED && (
           <button
             type="button"
             onClick={() => {
@@ -328,6 +330,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
               {profile.adsRemoved ? t('adFreeBadge') : t('noAdsBadge')}
             </span>
           </button>
+          )}
         </div>
       </div>
 

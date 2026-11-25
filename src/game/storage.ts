@@ -1,4 +1,5 @@
 import { isValidOutcomeCgId } from './achievements';
+import { isValidTutorialTipId } from './tutorial';
 import type {
   BoostersInventory,
   BottleStyleId,
@@ -50,6 +51,7 @@ export const DEFAULT_PROFILE: PlayerProfile = {
     alembicRecipes: [],
     dailyRewardDate: null,
   },
+  seenTutorials: [],
   adsRemoved: false,
   soundEnabled: true,
   bgmEnabled: true,
@@ -168,6 +170,9 @@ export function loadProfile(): PlayerProfile {
       unlockedCgs,
       claimedCgRewards,
       seenNotifications,
+      seenTutorials: Array.isArray(parsed.seenTutorials)
+        ? Array.from(new Set(parsed.seenTutorials.filter(isValidTutorialTipId)))
+        : [],
       adsRemoved: Boolean(parsed.adsRemoved),
       completedTrials: Array.isArray(parsed.completedTrials) ? parsed.completedTrials : [],
       lastDailyRewardDate:

@@ -1,6 +1,6 @@
 {
-  "name": "Solstice Sort",
-  "short_name": "Solstice Sort",
+  "name": "Potion Sort",
+  "short_name": "Potion Sort",
   "description": "A cozy 3D sunlit alchemy liquid-sorting puzzle game.",
   "start_url": "/",
   "display": "standalone",

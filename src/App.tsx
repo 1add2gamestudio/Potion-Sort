@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import {
   GameModals,
   type DefeatSnapshot,
@@ -18,6 +20,7 @@ import {
   claimCgAchievementReward,
   unlockOutcomeCg,
 } from './game/achievements';
+import { resolveAndroidBackAction } from './game/androidBack';
 import {
   applyRemoveAdsPurchase,
   evaluateInterstitialPacing,
@@ -30,7 +33,6 @@ import {
   rollDailyLoginReward,
   type DailyRewardGrant,
 } from './game/dailyReward';
-import { addExtraFlaskBooster } from './game/engine';
 import { triggerSemanticHaptic } from './game/haptics';
 import { LanguageProvider, createI18nValue } from './game/i18n';
 import { EVENT_TRIALS, getLevelSpec, getTrialLevelSpec } from './game/levelGenerator';
@@ -81,6 +83,7 @@ import type {
   OutcomeCgId,
   PlayModal,
   PlayerProfile,
+  TutorialTipId,
 } from './game/types';
 
 const ALL_INGREDIENTS: IngredientId[] = ['citrus', 'crystal', 'dew', 'mist'];
@@ -100,6 +103,7 @@ export default function App() {
   );
   const [activeTrialId, setActiveTrialId] = useState<string | null>(null);
   const [runKey, setRunKey] = useState(1);
+  const [continueGrantTick, setContinueGrantTick] = useState(0);
   const [modal, setModal] = useState<PlayModal>('NONE');
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [victorySnap, setVictorySnap] = useState<VictorySnapshot | null>(null);
@@ -110,6 +114,23 @@ export default function App() {
   const clearsSinceInterstitialRef = useRef(0);
   const [levelFailCounts, setLevelFailCounts] = useState<Record<number, number>>({});
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [exitToastVisible, setExitToastVisible] = useState(false);
+  const lastBackPressRef = useRef(0);
+  const exitToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backStateRef = useRef({
+    screen,
+    modal,
+    hasInterstitialAd: Boolean(adRequest?.isInterstitial),
+    lives: profile.lives,
+    isTrialMode: Boolean(activeTrialId),
+  });
+  backStateRef.current = {
+    screen,
+    modal,
+    hasInterstitialAd: Boolean(adRequest?.isInterstitial),
+    lives: profile.lives,
+    isTrialMode: Boolean(activeTrialId),
+  };
 
   // Sync profile persistence
   useEffect(() => {
@@ -144,8 +165,8 @@ export default function App() {
     if (typeof document === 'undefined') return;
     document.title =
       profile.language === 'zh'
-        ? '日光炼金瓶 — 治愈系魔药分色解谜'
-        : 'Solstice Sort — Sunlit Crystal Sorting Puzzle';
+        ? 'Potion Sort — 治愈系魔药分色解谜'
+        : 'Potion Sort — Sunlit Crystal Sorting Puzzle';
   }, [profile.language]);
 
   // Unlock BGM on first user gesture and keep BGM synced with toggle & page visibility
@@ -272,7 +293,98 @@ export default function App() {
     setScreen(nextScreen);
   }, []);
 
-  // Keyboard shortcuts (Enter/Space to start on Home, Esc/P to Pause, M to Mute)
+  const toggleAllAudio = useCallback(() => {
+    setProfile((p) => {
+      const anyOn = p.soundEnabled || p.bgmEnabled;
+      return {
+        ...p,
+        soundEnabled: !anyOn,
+        bgmEnabled: !anyOn,
+      };
+    });
+  }, []);
+
+  const handleMarkTutorialSeen = useCallback((tipId: TutorialTipId) => {
+    setProfile((curr) => {
+      if (curr.seenTutorials.includes(tipId)) return curr;
+      return {
+        ...curr,
+        seenTutorials: [...curr.seenTutorials, tipId],
+      };
+    });
+  }, []);
+
+  // Native Android hardware Back button / edge-swipe Back support via Capacitor App
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let disposed = false;
+    let removeListener: (() => void) | null = null;
+
+    void CapacitorApp.addListener('backButton', () => {
+      const action = resolveAndroidBackAction(backStateRef.current);
+      switch (action.type) {
+        case 'ignore':
+          return;
+        case 'close_modal':
+          setModal('NONE');
+          return;
+        case 'set_modal':
+          setModal(action.modal);
+          return;
+        case 'close_modal_and_navigate':
+          setModal('NONE');
+          setScreen(action.screen);
+          if (action.screen === 'HOME' || action.screen === 'EVENT') {
+            setActiveTrialId(null);
+          }
+          return;
+        case 'go_home':
+          setScreen('HOME');
+          return;
+        case 'exit_prompt_or_app': {
+          const now = Date.now();
+          if (now - lastBackPressRef.current < 2000) {
+            if (exitToastTimerRef.current) {
+              clearTimeout(exitToastTimerRef.current);
+              exitToastTimerRef.current = null;
+            }
+            setExitToastVisible(false);
+            void CapacitorApp.exitApp();
+          } else {
+            lastBackPressRef.current = now;
+            setExitToastVisible(true);
+            if (exitToastTimerRef.current) {
+              clearTimeout(exitToastTimerRef.current);
+            }
+            exitToastTimerRef.current = setTimeout(() => {
+              setExitToastVisible(false);
+              exitToastTimerRef.current = null;
+            }, 2000);
+          }
+          return;
+        }
+      }
+    }).then((handle) => {
+      if (disposed) {
+        void handle.remove();
+      } else {
+        removeListener = () => {
+          void handle.remove();
+        };
+      }
+    });
+
+    return () => {
+      disposed = true;
+      removeListener?.();
+      if (exitToastTimerRef.current) {
+        clearTimeout(exitToastTimerRef.current);
+        exitToastTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Keyboard shortcuts (Enter/Space to start on Home, Esc/P to Pause/Back, M to Mute All)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (screen === 'HOME' && modal === 'NONE' && (e.key === 'Enter' || e.key === ' ')) {
@@ -288,13 +400,32 @@ export default function App() {
       } else if (modal === 'PAUSED' && (e.key === 'Escape' || e.key.toLowerCase() === 'p')) {
         e.preventDefault();
         setModal('NONE');
+      } else if (
+        e.key === 'Escape' &&
+        (modal === 'SETTINGS' ||
+          modal === 'DAILY_REWARD' ||
+          modal === 'REMOVE_ADS_CONFIRM' ||
+          modal === 'NO_LIVES')
+      ) {
+        e.preventDefault();
+        if (modal === 'REMOVE_ADS_CONFIRM' && adRequest?.isInterstitial) {
+          setModal('AD_SIMULATION');
+        } else if (modal === 'NO_LIVES' && screen === 'PLAYING' && profile.lives <= 0) {
+          setModal('NONE');
+          setScreen('HOME');
+        } else {
+          setModal('NONE');
+        }
+      } else if (e.key === 'Escape' && modal === 'NONE' && screen !== 'HOME' && screen !== 'PLAYING') {
+        e.preventDefault();
+        setScreen('HOME');
       } else if (e.key.toLowerCase() === 'm') {
-        setProfile((p) => ({ ...p, soundEnabled: !p.soundEnabled }));
+        toggleAllAudio();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [screen, modal, profile.highestLevel, startCampaignLevel]);
+  }, [screen, modal, adRequest, profile.highestLevel, profile.lives, startCampaignLevel, toggleAllAudio]);
 
   const handleVictory = (stats: {
     moves: number;
@@ -419,6 +550,11 @@ export default function App() {
   const handleRestartConfirm = () => {
     const current = regenerateLives(profile);
     if (!activeTrialId) {
+      if (current.lives <= 0) {
+        setProfile(current);
+        setModal('NO_LIVES');
+        return;
+      }
       deductLifeAndResetStreak();
       if (current.lives - 1 <= 0) {
         setModal('NO_LIVES');
@@ -480,16 +616,19 @@ export default function App() {
     }
 
     playAddBottleSound(profile.soundEnabled);
-    setActiveLevel((curr) => ({
-      ...curr,
-      bottles: addExtraFlaskBooster(curr.bottles),
-    }));
+    // Grant extra flask in-place on the active board without wiping player progress
+    setContinueGrantTick((c) => c + 1);
     setModal('NONE');
   };
 
   const handleRetryAfterDefeat = () => {
     const current = regenerateLives(profile);
     if (!activeTrialId) {
+      if (current.lives <= 0) {
+        setProfile(current);
+        setModal('NO_LIVES');
+        return;
+      }
       deductLifeAndResetStreak();
       if (current.lives - 1 <= 0) {
         setModal('NO_LIVES');
@@ -521,15 +660,26 @@ export default function App() {
   const handleBuyInGameBooster = (key: 'undo' | 'shuffle' | 'extraFlask'): boolean => {
     const cost = IN_GAME_BOOSTER_COSTS[key];
     if (profile.coins < cost) return false;
-    setProfile((curr) => ({
-      ...curr,
-      coins: curr.coins - cost,
-    }));
+    setProfile((curr) => {
+      if (curr.coins < cost) return curr;
+      return {
+        ...curr,
+        coins: curr.coins - cost,
+      };
+    });
     return true;
   };
 
   const handleBrewRecipe = (recipe: AlembicRecipe) => {
+    const canAffordNow = (Object.keys(recipe.cost) as IngredientId[]).every(
+      (k) => profile.ingredients[k] >= recipe.cost[k]
+    );
+    if (!canAffordNow) return;
     setProfile((curr) => {
+      const canAfford = (Object.keys(recipe.cost) as IngredientId[]).every(
+        (k) => curr.ingredients[k] >= recipe.cost[k]
+      );
+      if (!canAfford) return curr;
       const nextIngredients = { ...curr.ingredients };
       (Object.keys(recipe.cost) as IngredientId[]).forEach((k) => {
         nextIngredients[k] = Math.max(0, nextIngredients[k] - recipe.cost[k]);
@@ -550,8 +700,13 @@ export default function App() {
   const handleClaimEventMilestone = (starsRequired: number) => {
     const m = EVENT_MILESTONES.find((item) => item.starsRequired === starsRequired);
     if (!m) return;
+    if (profile.eventStars < starsRequired || profile.claimedEventMilestones.includes(starsRequired)) {
+      return;
+    }
     setProfile((curr) => {
-      if (curr.claimedEventMilestones.includes(starsRequired)) return curr;
+      if (curr.eventStars < starsRequired || curr.claimedEventMilestones.includes(starsRequired)) {
+        return curr;
+      }
       const nextBoosters = { ...curr.boosters };
       if (m.rewardBooster) {
         nextBoosters[m.rewardBooster.key] += m.rewardBooster.amount;
@@ -589,6 +744,7 @@ export default function App() {
       return ALL_INGREDIENTS[idx];
     });
     setProfile((curr) => {
+      if (curr.coins < ESSENCE_POUCH_COIN_COST) return curr;
       const nextIngredients = { ...curr.ingredients };
       rolled.forEach((id) => {
         nextIngredients[id] += 1;
@@ -605,11 +761,14 @@ export default function App() {
 
   const handleBuySingleLife = () => {
     if (profile.coins < SINGLE_LIFE_COIN_COST || profile.lives >= profile.maxLives) return;
-    setProfile((curr) => ({
-      ...curr,
-      coins: curr.coins - SINGLE_LIFE_COIN_COST,
-      lives: Math.min(curr.maxLives, curr.lives + 1),
-    }));
+    setProfile((curr) => {
+      if (curr.coins < SINGLE_LIFE_COIN_COST || curr.lives >= curr.maxLives) return curr;
+      return {
+        ...curr,
+        coins: curr.coins - SINGLE_LIFE_COIN_COST,
+        lives: Math.min(curr.maxLives, curr.lives + 1),
+      };
+    });
     playShopPurchaseSound(profile.soundEnabled);
     if (modal === 'NO_LIVES') {
       setModal('NONE');
@@ -618,11 +777,14 @@ export default function App() {
 
   const handleRefillAllLives = () => {
     if (profile.coins < FULL_LIVES_COIN_COST || profile.lives >= profile.maxLives) return;
-    setProfile((curr) => ({
-      ...curr,
-      coins: curr.coins - FULL_LIVES_COIN_COST,
-      lives: curr.maxLives,
-    }));
+    setProfile((curr) => {
+      if (curr.coins < FULL_LIVES_COIN_COST || curr.lives >= curr.maxLives) return curr;
+      return {
+        ...curr,
+        coins: curr.coins - FULL_LIVES_COIN_COST,
+        lives: curr.maxLives,
+      };
+    });
     playShopPurchaseSound(profile.soundEnabled);
     if (modal === 'NO_LIVES') {
       setModal('NONE');
@@ -683,10 +845,8 @@ export default function App() {
       setAdRequest(null);
       return;
     } else if (adRequest.kind === 'rewarded_continue') {
-      setActiveLevel((curr) => ({
-        ...curr,
-        bottles: addExtraFlaskBooster(curr.bottles),
-      }));
+      playAddBottleSound(profile.soundEnabled);
+      setContinueGrantTick((c) => c + 1);
       setModal('NONE');
       setAdRequest(null);
       return;
@@ -743,8 +903,8 @@ export default function App() {
   return (
     <LanguageProvider lang={profile.language}>
       <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#FFEBC2] via-[#FFD996] to-[#F7BA63] flex items-center justify-center sm:p-4 overflow-hidden">
-        {/* Strict Portrait Mobile Game Frame (full-bleed on phones, 9:16 centerpiece on desktop) */}
-        <main className="relative w-full h-[100dvh] sm:h-[min(860px,94dvh)] sm:max-w-[420px] sm:rounded-[34px] sm:border-[6px] sm:border-[#783A09] sm:shadow-[0_24px_60px_rgba(92,42,4,0.35)] overflow-hidden bg-[#FFF6DF]">
+        {/* Strict Portrait Mobile Game Frame (full-bleed with notch safe-area on phones, 9:16 centerpiece on desktop) */}
+        <main className="relative w-full h-[100dvh] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0 sm:h-[min(860px,94dvh)] sm:max-w-[420px] sm:rounded-[34px] sm:border-[6px] sm:border-[#783A09] sm:shadow-[0_24px_60px_rgba(92,42,4,0.35)] overflow-hidden bg-[#260B4E]">
           {screen === 'HOME' && (
             <TitleHomeScreen
               profile={profile}
@@ -765,16 +925,16 @@ export default function App() {
               isPaused={modal !== 'NONE'}
               profile={profile}
               runKey={runKey}
+              continueGrantTick={continueGrantTick}
               onPause={() => setModal('PAUSED')}
               onOpenSettings={() => setModal('SETTINGS')}
-              onToggleMute={() =>
-                setProfile((p) => ({ ...p, soundEnabled: !p.soundEnabled }))
-              }
+              onToggleMute={toggleAllAudio}
               onRestartRequest={() => setModal('PAUSED')}
               onConsumeBooster={handleConsumeBooster}
               onBuyInGameBooster={handleBuyInGameBooster}
               onVictory={handleVictory}
               onGiveUp={handleGiveUp}
+              onMarkTutorialSeen={handleMarkTutorialSeen}
             />
           )}
 
@@ -808,12 +968,15 @@ export default function App() {
               profile={profile}
               onBuyBooster={(key, cost, amount) => {
                 if (profile.coins < cost) return;
-                setProfile((curr) => ({
-                  ...curr,
-                  coins: curr.coins - cost,
-                  boosters: { ...curr.boosters, [key]: curr.boosters[key] + amount },
-                }));
-                playPickupClink(profile.soundEnabled);
+                playShopPurchaseSound(profile.soundEnabled);
+                setProfile((curr) => {
+                  if (curr.coins < cost) return curr;
+                  return {
+                    ...curr,
+                    coins: curr.coins - cost,
+                    boosters: { ...curr.boosters, [key]: curr.boosters[key] + amount },
+                  };
+                });
               }}
               onBuyEssencePouch={handleBuyEssencePouch}
               onBuySingleLife={handleBuySingleLife}
@@ -843,6 +1006,11 @@ export default function App() {
             onCloseModal={() => {
               if (modal === 'REMOVE_ADS_CONFIRM' && adRequest?.isInterstitial) {
                 setModal('AD_SIMULATION');
+                return;
+              }
+              if (modal === 'NO_LIVES' && screen === 'PLAYING' && profile.lives <= 0) {
+                setModal('NONE');
+                setScreen('HOME');
                 return;
               }
               setModal('NONE');
@@ -881,6 +1049,15 @@ export default function App() {
               setScreen('HOME');
             }}
           />
+          {exitToastVisible && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-[#2E1059]/95 border-2 border-[#FFD966] text-[#FFF8E1] text-xs font-black tracking-wide shadow-[0_8px_22px_rgba(18,5,38,0.6)] whitespace-nowrap animate-mascot-cheer"
+            >
+              {createI18nValue(profile.language).t('backExitToast')}
+            </div>
+          )}
         </main>
       </div>
     </LanguageProvider>

@@ -49,6 +49,11 @@ import {
 } from '../game/speedBonus';
 import { IN_GAME_BOOSTER_COSTS } from '../game/storage';
 import {
+  computeOnboardingGuide,
+  detectUnseenMechanicTip,
+  type MechanicTipId,
+} from '../game/tutorial';
+import {
   BOTTLE_CAPACITY,
   type Bottle,
   type CgTier,
@@ -56,6 +61,7 @@ import {
   type LiquidLayer,
   type PlayerProfile,
   type PotionColor,
+  type TutorialTipId,
 } from '../game/types';
 import { LIQUID_3D_PALETTES } from './bottleDesigns';
 import { CabinetMascots } from './CabinetMascots';
@@ -128,6 +134,7 @@ interface GameplayScreenProps {
   isPaused?: boolean;
   profile: PlayerProfile;
   runKey: number;
+  continueGrantTick?: number;
   onPause: () => void;
   onOpenSettings: () => void;
   onToggleMute: () => void;
@@ -143,6 +150,7 @@ interface GameplayScreenProps {
     bottlesCount: number;
   }) => void;
   onGiveUp: (stats: { completedBottles: number; totalBottles: number }) => void;
+  onMarkTutorialSeen?: (tipId: TutorialTipId) => void;
 }
 
 const CRATE_SHARDS = [
@@ -187,6 +195,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   isPaused = false,
   profile,
   runKey,
+  continueGrantTick = 0,
   onPause,
   onOpenSettings,
   onToggleMute,
@@ -195,6 +204,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   onBuyInGameBooster,
   onVictory,
   onGiveUp,
+  onMarkTutorialSeen,
 }) => {
   const { t, colorName, potionOrderName, mechanicName } = useI18n();
 
@@ -222,6 +232,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     who: 'fox',
     text: '',
   });
+  const [activeMechanicTip, setActiveMechanicTip] = useState<MechanicTipId | null>(null);
 
   const wonRef = useRef(false);
   const elapsedSecRef = useRef(0);
@@ -232,6 +243,8 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const cheerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cheerDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const victoryTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const fxTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const lastContinueTickRef = useRef(continueGrantTick);
   const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sealHandlesRef = useRef<
     Record<string, { timer: ReturnType<typeof setTimeout> | null; raf: number | null }>
@@ -244,6 +257,19 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const clearVictoryTimers = () => {
     victoryTimersRef.current.forEach((id) => clearTimeout(id));
     victoryTimersRef.current = [];
+  };
+
+  const clearFxTimers = () => {
+    fxTimersRef.current.forEach((id) => clearTimeout(id));
+    fxTimersRef.current = [];
+  };
+
+  const scheduleFxTimer = (fn: () => void, delayMs: number) => {
+    const id = setTimeout(() => {
+      fxTimersRef.current = fxTimersRef.current.filter((t) => t !== id);
+      fn();
+    }, delayMs);
+    fxTimersRef.current.push(id);
   };
 
   const clearMascotCheerTimers = () => {
@@ -335,7 +361,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     };
 
     setObstacleBursts((prev) => [...prev, burst]);
-    setTimeout(() => {
+    scheduleFxTimer(() => {
       setObstacleBursts((prev) => prev.filter((item) => item.id !== id));
     }, 520);
   };
@@ -520,6 +546,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       stopPourSound();
       clearMascotCheerTimers();
       clearVictoryTimers();
+      clearFxTimers();
       if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
       Object.values(sealHandlesRef.current).forEach((handle) => {
         if (handle.timer) clearTimeout(handle.timer);
@@ -533,6 +560,18 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setReaction((prev) => ({ id: prev.id + 1, who, text }));
   };
 
+  // In-place Continue (+1 Extra Flask) after Defeat — preserves all solved bottles & progress!
+  useEffect(() => {
+    if (continueGrantTick > lastContinueTickRef.current) {
+      lastContinueTickRef.current = continueGrantTick;
+      cancelPourAnimation();
+      setSelectedId(null);
+      setBottles((curr) => addExtraFlaskBooster(curr));
+      triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
+      pushReaction('dragon', t('reactExtraFlaskAdded'));
+    }
+  }, [continueGrantTick]);
+
   useEffect(() => {
     wonRef.current = false;
     bottleComboRef.current = 0;
@@ -540,6 +579,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     cancelAllSealAnimations();
     clearMascotCheerTimers();
     clearVictoryTimers();
+    clearFxTimers();
     setMascotCheering(false);
     setObstacleBursts([]);
     setVictoryFlyTokens([]);
@@ -553,9 +593,15 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setElapsedSec(0);
     elapsedSecRef.current = 0;
     setFreeStreakUndos(profile.streak >= 3 ? 1 : 0);
+    const unseenTip = detectUnseenMechanicTip(fresh, profile.seenTutorials);
+    setActiveMechanicTip(unseenTip);
+    const isFirstTimeBasics =
+      !isTrialMode && level.levelNumber === 1 && !profile.seenTutorials.includes('basics');
     pushReaction(
       'fox',
-      level.mechanicsIntroduced[0]
+      isFirstTimeBasics
+        ? t('tutorialBasicsHint')
+        : level.mechanicsIntroduced[0]
         ? t('reactNewCraft', { name: mechanicName(level.mechanicsIntroduced[0]) })
         : t('reactOrderUp', { name: potionOrderName(level.potionOrderName) })
     );
@@ -741,13 +787,13 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         }
 
         if (outcome.revealedHidden) {
-          setTimeout(() => {
+          scheduleFxTimer(() => {
             playMysteryReveal(profile.soundEnabled);
           }, 210);
         }
 
         if (outcome.unlockedCork) {
-          setTimeout(() => {
+          scheduleFxTimer(() => {
             playObstacleUnlockSound(profile.soundEnabled, 'cork');
             triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
             spawnObstacleUnlockBurst(clicked.id, 'cork', outcome.pouredColor);
@@ -755,7 +801,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           pushReaction('dragon', t('reactCorkPopped'));
         } else if (outcome.unlockedObstacles.length > 0) {
           const unlockedList = outcome.unlockedObstacles;
-          setTimeout(() => {
+          scheduleFxTimer(() => {
             triggerSemanticHaptic(profile.hapticsEnabled, 'obstacleUnlock');
             unlockedList.forEach((obs, idx) => {
               if (idx === 0) {
@@ -778,6 +824,9 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
         if (isLevelComplete(outcome.bottles)) {
           wonRef.current = true;
+          if (!isTrialMode && level.levelNumber === 1 && !profile.seenTutorials.includes('basics')) {
+            onMarkTutorialSeen?.('basics');
+          }
           pushReaction('dragon', t('reactLevelComplete', { name: potionOrderName(level.potionOrderName) }));
           const finalElapsedSec = Math.max(1, elapsedSecRef.current);
           const speedBonus = evaluateSpeedBonus(finalElapsedSec, targetSec, level.difficulty);
@@ -941,6 +990,33 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     );
   }, [bottles, level.difficulty, isTrialMode, profile.streak]);
 
+  // Auto-dismiss first-encounter mechanic tip after 2 pours so fast players aren't blocked
+  useEffect(() => {
+    if (moves >= 2 && activeMechanicTip) {
+      onMarkTutorialSeen?.(activeMechanicTip);
+      setActiveMechanicTip(null);
+    }
+  }, [moves, activeMechanicTip, onMarkTutorialSeen]);
+
+  const onboardingGuide = useMemo(() => {
+    if (isPaused || Boolean(activePour) || wonRef.current) return null;
+    return computeOnboardingGuide({
+      levelNumber: level.levelNumber,
+      isTrialMode,
+      bottles,
+      selectedId,
+      seenTutorials: profile.seenTutorials,
+    });
+  }, [
+    isPaused,
+    activePour,
+    level.levelNumber,
+    isTrialMode,
+    bottles,
+    selectedId,
+    profile.seenTutorials,
+  ]);
+
   const difficultyLabel =
     level.difficulty === 'super_hard'
       ? t('diffSuperHard')
@@ -1010,9 +1086,19 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
         const sealState = sealVisuals[bottle.id];
         const isShaking = shakeBottleId === bottle.id;
+        const isGuidedBottle = onboardingGuide?.bottleId === bottle.id;
 
         return (
-          <div key={bottle.id} className={isShaking ? 'animate-bottle-error-shake' : ''}>
+          <div
+            key={bottle.id}
+            className={`relative ${isShaking ? 'animate-bottle-error-shake' : ''}`}
+          >
+            {isGuidedBottle && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-1.5 rounded-2xl border-2 border-[#FFE875] bg-[#FFE875]/15 shadow-[0_0_18px_rgba(255,226,89,0.85)] animate-tutorial-halo z-[1]"
+              />
+            )}
             <CrystalBottle
               bottle={bottle}
               bottleStyle={profile.bottleStyle}
@@ -1028,6 +1114,31 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
                 bottleRefs.current[bottle.id] = el;
               }}
             />
+            {isGuidedBottle && onboardingGuide && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 z-[35] flex flex-col items-center animate-tutorial-finger"
+              >
+                <span className="px-2.5 py-0.5 rounded-full bg-[#FFE259] border-2 border-[#6B2D00] text-[#4E2100] text-[10px] font-black shadow-[0_3px_0_rgba(78,33,0,0.45)] whitespace-nowrap">
+                  {onboardingGuide.step === 'pick_source'
+                    ? t('tutorialTapSource')
+                    : t('tutorialTapTarget')}
+                </span>
+                <svg
+                  viewBox="0 0 36 36"
+                  className="w-7 h-7 -mt-0.5 drop-shadow-[0_3px_4px_rgba(40,12,0,0.55)]"
+                >
+                  <path
+                    d="M15.5 3.5 C15.5 2 17 1 18.5 1 C20 1 21.5 2 21.5 3.5 L21.5 15 L23.5 14 C25 13.4 26.5 14.3 26.5 15.8 L26.5 17.5 L28 17 C29.4 16.6 30.8 17.6 30.8 19.1 L30.8 24.5 C30.8 30 26.5 34 21 34 L16 34 C11.5 34 8.5 30.8 7.6 26.4 L5.7 19.8 C5.2 18.2 6.3 16.6 7.9 16.4 C9.3 16.2 10.6 17 11.1 18.3 L12.5 21.5 L12.5 3.5 Z"
+                    fill="#FFF7DE"
+                    stroke="#5A2404"
+                    strokeWidth="2.4"
+                    strokeLinejoin="round"
+                    transform="rotate(180 18 18)"
+                  />
+                </svg>
+              </div>
+            )}
           </div>
         );
       })}
@@ -1150,10 +1261,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
                 triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
                 onToggleMute();
               }}
-              aria-label={profile.soundEnabled ? t('soundOn') : t('soundMuted')}
+              aria-label={
+                profile.soundEnabled || profile.bgmEnabled ? t('soundOn') : t('soundMuted')
+              }
               className="candy-btn-blue w-10 h-10 flex items-center justify-center cursor-pointer"
             >
-              {profile.soundEnabled ? (
+              {profile.soundEnabled || profile.bgmEnabled ? (
                 <SoundOn3DIcon className="w-6 h-5" />
               ) : (
                 <SoundOff3DIcon className="w-6 h-5" />
@@ -1285,6 +1398,53 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
               <span className="text-[11px] font-black text-[#4E2305] truncate">
                 {reaction.text}
               </span>
+            </div>
+          )}
+
+          {/* First-Encounter Mechanic Tip Banner (Non-Blocking) */}
+          {!stuck && activeMechanicTip && (
+            <div
+              role="note"
+              className="animate-mascot-cheer w-full max-w-[348px] mt-0.5 px-3 py-2 rounded-2xl bg-gradient-to-b from-[#FFFDF4] to-[#FBEAC4] border-2 border-[#E39A24] shadow-[0_6px_16px_rgba(40,12,62,0.35)] flex items-center gap-2.5"
+            >
+              <img
+                src={solsticeMascotAvatarImg}
+                alt="Fox alchemist guide"
+                referrerPolicy="no-referrer"
+                className="w-9 h-9 rounded-full border-2 border-[#7126E8] object-cover shrink-0 shadow-sm"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-black text-[#7126E8] leading-tight">
+                  {activeMechanicTip === 'cork'
+                    ? t('tutorialCorkTitle')
+                    : activeMechanicTip === 'crate'
+                    ? t('tutorialCrateTitle')
+                    : activeMechanicTip === 'curtain'
+                    ? t('tutorialCurtainTitle')
+                    : t('tutorialMysteryTitle')}
+                </div>
+                <p className="text-[11px] font-bold text-[#4E2305] leading-snug mt-0.5">
+                  {activeMechanicTip === 'cork'
+                    ? t('tutorialCorkBody')
+                    : activeMechanicTip === 'crate'
+                    ? t('tutorialCrateBody')
+                    : activeMechanicTip === 'curtain'
+                    ? t('tutorialCurtainBody')
+                    : t('tutorialMysteryBody')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  playUiClick(profile.soundEnabled);
+                  triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+                  onMarkTutorialSeen?.(activeMechanicTip);
+                  setActiveMechanicTip(null);
+                }}
+                className="shrink-0 px-2.5 py-1.5 rounded-xl bg-gradient-to-b from-[#FFE259] to-[#F7A822] border-2 border-[#6B2D00] text-[#4A1C00] text-[11px] font-black shadow-[0_2px_0_#6B2D00] active:translate-y-0.5 cursor-pointer whitespace-nowrap"
+              >
+                {t('tutorialGotIt')}
+              </button>
             </div>
           )}
         </div>

@@ -152,6 +152,8 @@ export interface IngredientsInventory {
   mist: number;
 }
 
+export type TutorialTipId = 'basics' | 'mystery' | 'cork' | 'crate' | 'curtain';
+
 export interface NotificationSeenState {
   cgIds: OutcomeCgId[];
   eventMilestones: number[];
@@ -174,6 +176,7 @@ export interface PlayerProfile {
   unlockedCgs: OutcomeCgId[];
   claimedCgRewards: OutcomeCgId[];
   seenNotifications: NotificationSeenState;
+  seenTutorials: TutorialTipId[];
   adsRemoved: boolean;
   soundEnabled: boolean;
   bgmEnabled: boolean;

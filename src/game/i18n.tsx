@@ -3,7 +3,7 @@ import type { IngredientId, LanguageCode, PotionColor } from './types';
 
 const ZH = {
   // Brand & Home
-  gameTitle: '日光炼金瓶',
+  gameTitle: 'Potion Sort',
   gameSubtitle: '暖阳花房工坊',
   coinsLabel: '金币',
   livesFull: '已满',
@@ -228,13 +228,28 @@ const ZH = {
   shopEssenceToast: '打开精华盲袋获得：{items}',
   returnToHomeBtn: '返回首页',
   coinsRewardShort: '+{n} 金币',
+
+  // Android Back & Onboarding Tutorials
+  backExitToast: '再按一次返回键退出游戏',
+  tutorialTapSource: '点选魔药瓶',
+  tutorialTapTarget: '点这里倒水',
+  tutorialBasicsHint: '把同色魔药倒进同一个瓶子，集满 4 层即可封口！',
+  tutorialMysteryTitle: '新机关 · 神秘问号',
+  tutorialMysteryBody: '倒走上层魔药，下方隐藏的「?」颜色就会立刻揭晓！',
+  tutorialCorkTitle: '新机关 · 软木塞封口',
+  tutorialCorkBody: '封口瓶暂时不能倒出，先倒入同色魔药即可啵地弹开！',
+  tutorialCrateTitle: '新机关 · 彩锁木箱',
+  tutorialCrateBody: '先集满一瓶与锁头同色的魔药，木箱就会自动碎裂解锁！',
+  tutorialCurtainTitle: '新机关 · 丝绒帘幕',
+  tutorialCurtainBody: '先集满一瓶与帘幕宝石同色的魔药，就能华丽揭开帘幕！',
+  tutorialGotIt: '知道了',
 } as const;
 
 export type I18nKey = keyof typeof ZH;
 
 const EN: Record<I18nKey, string> = {
   // Brand & Home
-  gameTitle: 'Solstice Sort',
+  gameTitle: 'Potion Sort',
   gameSubtitle: 'Sunlit Conservatory',
   coinsLabel: 'Coins',
   livesFull: 'Full',
@@ -459,6 +474,21 @@ const EN: Record<I18nKey, string> = {
   shopEssenceToast: 'Opened pouch: {items}',
   returnToHomeBtn: 'Return to Home',
   coinsRewardShort: '+{n} Coins',
+
+  // Android Back & Onboarding Tutorials
+  backExitToast: 'Press back again to exit',
+  tutorialTapSource: 'Tap flask',
+  tutorialTapTarget: 'Pour here',
+  tutorialBasicsHint: 'Pour matching colors together — fill 4 layers to seal a flask!',
+  tutorialMysteryTitle: 'New · Mystery Layers',
+  tutorialMysteryBody: 'Pour away the top layer to reveal hidden "?" colors underneath!',
+  tutorialCorkTitle: 'New · Corked Flask',
+  tutorialCorkBody: 'Corked flasks cannot pour out — pour matching color on top to pop it!',
+  tutorialCrateTitle: 'New · Padlocked Crate',
+  tutorialCrateBody: 'Seal one full flask matching the padlock color to smash the crate!',
+  tutorialCurtainTitle: 'New · Velvet Curtain',
+  tutorialCurtainBody: 'Seal one full flask matching the curtain gem color to lift it!',
+  tutorialGotIt: 'Got it',
 };
 
 const COLOR_ZH: Record<PotionColor, string> = {

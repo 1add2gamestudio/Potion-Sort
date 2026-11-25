@@ -175,6 +175,7 @@ export interface PlayerProfile {
   claimedEventMilestones: number[];
   unlockedCgs: OutcomeCgId[];
   claimedCgRewards: OutcomeCgId[];
+  totalDefeats: number;
   seenNotifications: NotificationSeenState;
   seenTutorials: TutorialTipId[];
   adsRemoved: boolean;

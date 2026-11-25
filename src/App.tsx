@@ -114,7 +114,6 @@ export default function App() {
   const [pendingDailyReward, setPendingDailyReward] = useState<DailyRewardGrant | null>(null);
   const dailyCheckedRef = useRef(false);
   const clearsSinceInterstitialRef = useRef(0);
-  const [levelFailCounts, setLevelFailCounts] = useState<Record<number, number>>({});
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [exitToastVisible, setExitToastVisible] = useState(false);
   const lastBackPressRef = useRef(0);
@@ -479,20 +478,11 @@ export default function App() {
     const nextStreak = isFrontierCampaign ? profile.streak + 1 : profile.streak;
     const cgTier = resolveVictoryCgTier({
       streakAfterWin: nextStreak,
-      difficulty: activeLevel.difficulty,
       isTrial,
     });
 
     // Check if this outcome unlocks a new CG achievement
     const cgUnlockPreview = unlockOutcomeCg(profile, 'victory', cgTier);
-
-    // Clear consecutive failure counter for this level on win
-    setLevelFailCounts((prev) => {
-      if (!(activeLevel.levelNumber in prev)) return prev;
-      const next = { ...prev };
-      delete next[activeLevel.levelNumber];
-      return next;
-    });
 
     setProfile((curr) => {
       const updatedStreak = isFrontierCampaign ? curr.streak + 1 : curr.streak;
@@ -571,24 +561,19 @@ export default function App() {
     totalBottles: number;
     extraFlasksUsed: number;
   }) => {
-    const prevFails = levelFailCounts[activeLevel.levelNumber] ?? 0;
-    const nextFailCount = prevFails + 1;
-    setLevelFailCounts((prev) => ({
-      ...prev,
-      [activeLevel.levelNumber]: nextFailCount,
-    }));
-
+    const nextTotalDefeats = profile.totalDefeats + 1;
     const cgTier = resolveDefeatCgTier({
-      failCountOnLevel: nextFailCount,
-      completedBottles: stats.completedBottles,
-      totalBottles: stats.totalBottles,
-      hadStreak: profile.streak,
+      totalDefeatCount: nextTotalDefeats,
     });
 
     const cgUnlockPreview = unlockOutcomeCg(profile, 'defeat', cgTier);
-    if (cgUnlockPreview.newlyUnlocked) {
-      setProfile((curr) => unlockOutcomeCg(curr, 'defeat', cgTier).profile);
-    }
+    setProfile((curr) => {
+      const updated = unlockOutcomeCg(curr, 'defeat', cgTier).profile;
+      return {
+        ...updated,
+        totalDefeats: curr.totalDefeats + 1,
+      };
+    });
 
     playDefeatChime(profile.soundEnabled, cgTier);
     triggerSemanticHaptic(profile.hapticsEnabled, 'defeat');
@@ -1061,7 +1046,6 @@ export default function App() {
               setProfile((curr) => ({ ...curr, language }))
             }
             onResetSave={() => {
-              setLevelFailCounts({});
               setPendingDailyReward(null);
               setAdRequest(null);
               setActiveTrialId(null);

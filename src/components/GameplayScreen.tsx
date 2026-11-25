@@ -840,9 +840,9 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
           }
           pushReaction('dragon', t('reactLevelComplete', { name: headerLevelTitle }), 3500);
           const finalElapsedSec = Math.max(1, elapsedSecRef.current);
+          const isFrontierCampaign = !isTrialMode && level.levelNumber >= profile.highestLevel;
           const victoryTier = resolveVictoryCgTier({
-            streakAfterWin: isTrialMode ? profile.streak : profile.streak + 1,
-            difficulty: level.difficulty,
+            streakAfterWin: isFrontierCampaign ? profile.streak + 1 : profile.streak,
             isTrial: isTrialMode,
           });
           const flyStartDelay = outcome.completedTarget ? 920 : 420;

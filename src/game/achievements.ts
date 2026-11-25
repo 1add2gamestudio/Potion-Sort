@@ -14,47 +14,49 @@ export interface CgAchievementDef {
     | 'cgTriggerD3';
 }
 
+export const CG_TOKEN_REWARD_COINS = 20;
+
 export const CG_ACHIEVEMENTS: CgAchievementDef[] = [
   {
     id: 'victory_1',
     outcome: 'victory',
     tier: 1,
-    rewardCoins: 30,
+    rewardCoins: CG_TOKEN_REWARD_COINS,
     triggerKey: 'cgTriggerV1',
   },
   {
     id: 'victory_2',
     outcome: 'victory',
     tier: 2,
-    rewardCoins: 60,
+    rewardCoins: CG_TOKEN_REWARD_COINS,
     triggerKey: 'cgTriggerV2',
   },
   {
     id: 'victory_3',
     outcome: 'victory',
     tier: 3,
-    rewardCoins: 120,
+    rewardCoins: CG_TOKEN_REWARD_COINS,
     triggerKey: 'cgTriggerV3',
   },
   {
     id: 'defeat_1',
     outcome: 'defeat',
     tier: 1,
-    rewardCoins: 20,
+    rewardCoins: CG_TOKEN_REWARD_COINS,
     triggerKey: 'cgTriggerD1',
   },
   {
     id: 'defeat_2',
     outcome: 'defeat',
     tier: 2,
-    rewardCoins: 40,
+    rewardCoins: CG_TOKEN_REWARD_COINS,
     triggerKey: 'cgTriggerD2',
   },
   {
     id: 'defeat_3',
     outcome: 'defeat',
     tier: 3,
-    rewardCoins: 80,
+    rewardCoins: CG_TOKEN_REWARD_COINS,
     triggerKey: 'cgTriggerD3',
   },
 ];

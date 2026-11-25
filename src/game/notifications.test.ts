@@ -34,10 +34,10 @@ test('Achievements badge clears on enter/exit even without claiming and reappear
   const unlocked2 = unlockOutcomeCg(visited, 'defeat', 1).profile;
   assert.equal(getAchievementsBadgeCount(unlocked2), 1);
 
-  // Batch claiming grants coins for both unclaimed CGs (30 + 20 = 50)
+  // Batch claiming grants token coins for both unclaimed CGs (20 + 20 = 40)
   const claimedAll = claimAllCgAchievementRewards(unlocked2);
   assert.equal(claimedAll.claimedCount, 2);
-  assert.equal(claimedAll.coinsGranted, 50);
+  assert.equal(claimedAll.coinsGranted, 40);
   assert.equal(getAchievementsBadgeCount(claimedAll.profile), 0);
 });
 

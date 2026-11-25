@@ -8,79 +8,19 @@ import {
   resolveVictoryCgTier,
 } from './outcomeCg';
 
-test('resolveVictoryCgTier escalates progressively across Tiers 1 -> 2 -> 3', () => {
-  assert.equal(
-    resolveVictoryCgTier({ streakAfterWin: 1, difficulty: 'normal', isTrial: false }),
-    1
-  );
-  assert.equal(
-    resolveVictoryCgTier({ streakAfterWin: 2, difficulty: 'normal', isTrial: false }),
-    2
-  );
-  assert.equal(
-    resolveVictoryCgTier({ streakAfterWin: 1, difficulty: 'hard', isTrial: false }),
-    2
-  );
-  assert.equal(
-    resolveVictoryCgTier({ streakAfterWin: 4, difficulty: 'normal', isTrial: false }),
-    3
-  );
-  assert.equal(
-    resolveVictoryCgTier({ streakAfterWin: 1, difficulty: 'super_hard', isTrial: false }),
-    3
-  );
-  assert.equal(
-    resolveVictoryCgTier({ streakAfterWin: 1, difficulty: 'normal', isTrial: true }),
-    3
-  );
+test('resolveVictoryCgTier escalates cleanly across Tiers 1 -> 2 -> 3', () => {
+  assert.equal(resolveVictoryCgTier({ streakAfterWin: 0, isTrial: false }), 1);
+  assert.equal(resolveVictoryCgTier({ streakAfterWin: 1, isTrial: false }), 1);
+  assert.equal(resolveVictoryCgTier({ streakAfterWin: 2, isTrial: false }), 2);
+  assert.equal(resolveVictoryCgTier({ streakAfterWin: 3, isTrial: false }), 3);
+  assert.equal(resolveVictoryCgTier({ streakAfterWin: 1, isTrial: true }), 3);
 });
 
-test('resolveDefeatCgTier escalates progressively across Tiers 1 -> 2 -> 3', () => {
-  assert.equal(
-    resolveDefeatCgTier({
-      failCountOnLevel: 1,
-      completedBottles: 3,
-      totalBottles: 4,
-      hadStreak: 0,
-    }),
-    1
-  );
-  assert.equal(
-    resolveDefeatCgTier({
-      failCountOnLevel: 1,
-      completedBottles: 1,
-      totalBottles: 4,
-      hadStreak: 0,
-    }),
-    2
-  );
-  assert.equal(
-    resolveDefeatCgTier({
-      failCountOnLevel: 2,
-      completedBottles: 3,
-      totalBottles: 4,
-      hadStreak: 0,
-    }),
-    2
-  );
-  assert.equal(
-    resolveDefeatCgTier({
-      failCountOnLevel: 3,
-      completedBottles: 3,
-      totalBottles: 4,
-      hadStreak: 0,
-    }),
-    3
-  );
-  assert.equal(
-    resolveDefeatCgTier({
-      failCountOnLevel: 1,
-      completedBottles: 3,
-      totalBottles: 4,
-      hadStreak: 3,
-    }),
-    3
-  );
+test('resolveDefeatCgTier escalates sequentially by total defeat count 1 -> 2 -> 3', () => {
+  assert.equal(resolveDefeatCgTier({ totalDefeatCount: 1 }), 1);
+  assert.equal(resolveDefeatCgTier({ totalDefeatCount: 2 }), 2);
+  assert.equal(resolveDefeatCgTier({ totalDefeatCount: 3 }), 3);
+  assert.equal(resolveDefeatCgTier({ totalDefeatCount: 7 }), 3);
 });
 
 test('all 6 static progressive Victory & Defeat CG assets exist on disk', () => {

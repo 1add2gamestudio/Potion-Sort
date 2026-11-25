@@ -45,6 +45,7 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   claimedEventMilestones: [],
   unlockedCgs: [],
   claimedCgRewards: [],
+  totalDefeats: 0,
   seenNotifications: {
     cgIds: [],
     eventMilestones: [],
@@ -169,6 +170,10 @@ export function loadProfile(): PlayerProfile {
         : [],
       unlockedCgs,
       claimedCgRewards,
+      totalDefeats:
+        typeof parsed.totalDefeats === 'number' && Number.isFinite(parsed.totalDefeats)
+          ? Math.max(0, Math.floor(parsed.totalDefeats))
+          : unlockedCgs.filter((id) => id.startsWith('defeat_')).length,
       seenNotifications,
       seenTutorials: Array.isArray(parsed.seenTutorials)
         ? Array.from(new Set(parsed.seenTutorials.filter(isValidTutorialTipId)))

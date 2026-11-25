@@ -1,4 +1,4 @@
-import type { CgOutcome, CgTier, DifficultyTier } from './types';
+import type { CgOutcome, CgTier } from './types';
 
 export type CgOverlayMood =
   | 'warm_sparkle'
@@ -102,34 +102,28 @@ export const OUTCOME_CG_CATALOG: Record<CgOutcome, Record<CgTier, OutcomeCgEntry
 
 export interface VictoryCgContext {
   streakAfterWin: number;
-  difficulty: DifficultyTier;
   isTrial: boolean;
 }
 
 export function resolveVictoryCgTier(ctx: VictoryCgContext): CgTier {
-  if (ctx.streakAfterWin >= 4 || ctx.difficulty === 'super_hard' || ctx.isTrial) {
+  if (ctx.streakAfterWin >= 3 || ctx.isTrial) {
     return 3;
   }
-  if (ctx.streakAfterWin >= 2 || ctx.difficulty === 'hard') {
+  if (ctx.streakAfterWin === 2) {
     return 2;
   }
   return 1;
 }
 
 export interface DefeatCgContext {
-  failCountOnLevel: number;
-  completedBottles: number;
-  totalBottles: number;
-  hadStreak: number;
+  totalDefeatCount: number;
 }
 
 export function resolveDefeatCgTier(ctx: DefeatCgContext): CgTier {
-  if (ctx.failCountOnLevel >= 3 || ctx.hadStreak >= 3) {
+  if (ctx.totalDefeatCount >= 3) {
     return 3;
   }
-  const completionRatio =
-    ctx.totalBottles > 0 ? ctx.completedBottles / ctx.totalBottles : 0;
-  if (ctx.failCountOnLevel === 2 || completionRatio < 0.5) {
+  if (ctx.totalDefeatCount === 2) {
     return 2;
   }
   return 1;

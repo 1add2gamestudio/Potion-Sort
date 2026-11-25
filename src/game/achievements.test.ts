@@ -36,13 +36,13 @@ test('claimCgAchievementReward rejects locked CGs and grants coins once when unl
   const unlocked = unlockOutcomeCg(lockedBase, 'victory', 3).profile;
   const claimed = claimCgAchievementReward(unlocked, 'victory_3');
   assert.equal(claimed.claimed, true);
-  assert.equal(claimed.coinsGranted, 120);
-  assert.equal(claimed.profile.coins, 220);
+  assert.equal(claimed.coinsGranted, 20);
+  assert.equal(claimed.profile.coins, 120);
   assert.equal(getUnclaimedCgRewardCount(claimed.profile), 0);
 
   const secondClaim = claimCgAchievementReward(claimed.profile, 'victory_3');
   assert.equal(secondClaim.claimed, false);
-  assert.equal(secondClaim.profile.coins, 220);
+  assert.equal(secondClaim.profile.coins, 120);
 });
 
 test('CG_ACHIEVEMENTS covers all 6 victory and defeat tiers uniquely', () => {

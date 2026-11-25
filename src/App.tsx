@@ -911,7 +911,15 @@ export default function App() {
     <LanguageProvider lang={profile.language}>
       <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#FFEBC2] via-[#FFD996] to-[#F7BA63] flex items-center justify-center sm:p-4 overflow-hidden">
         {/* Strict Portrait Mobile Game Frame (full-bleed with notch safe-area on phones, 9:16 centerpiece on desktop) */}
-        <main className="relative w-full h-[100dvh] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0 sm:h-[min(860px,94dvh)] sm:max-w-[420px] sm:rounded-[34px] sm:border-[6px] sm:border-[#783A09] sm:shadow-[0_24px_60px_rgba(92,42,4,0.35)] overflow-hidden bg-[#260B4E]">
+        <main
+          onClick={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest('button:not(:disabled)')) {
+              triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
+            }
+          }}
+          className="relative w-full h-[100dvh] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0 sm:h-[min(860px,94dvh)] sm:max-w-[420px] sm:rounded-[34px] sm:border-[6px] sm:border-[#783A09] sm:shadow-[0_24px_60px_rgba(92,42,4,0.35)] overflow-hidden bg-[#260B4E]"
+        >
           {screen === 'HOME' && (
             <TitleHomeScreen
               profile={profile}

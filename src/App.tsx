@@ -63,6 +63,7 @@ import {
   startBgm,
   stopBgm,
   stopPourSound,
+  unlockAudioForGesture,
 } from './game/sound';
 import {
   CONTINUE_COIN_COST,
@@ -100,7 +101,7 @@ export default function App() {
   });
 
   const [activeLevel, setActiveLevel] = useState<LevelSpec>(() =>
-    getLevelSpec(loadProfile().highestLevel)
+    getLevelSpec(profile.highestLevel)
   );
   const [activeTrialId, setActiveTrialId] = useState<string | null>(null);
   const [runKey, setRunKey] = useState(1);
@@ -170,15 +171,24 @@ export default function App() {
         : 'Potion Sort — Sunlit Crystal Sorting Puzzle';
   }, [profile.language]);
 
-  // Unlock BGM on first user gesture and keep BGM synced with toggle & page visibility
+  const bgmEnabledRef = useRef(profile.bgmEnabled);
+  bgmEnabledRef.current = profile.bgmEnabled;
+
+  // Unlock AudioContext & BGM synchronously inside the first user gesture (required by iOS Safari/WKWebView)
   useEffect(() => {
+    let unlocked = false;
     const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      unlockAudioForGesture(bgmEnabledRef.current);
       setAudioUnlocked(true);
     };
     window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+    window.addEventListener('touchstart', unlock, { once: true, passive: true });
     window.addEventListener('keydown', unlock, { once: true });
     return () => {
       window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('touchstart', unlock);
       window.removeEventListener('keydown', unlock);
     };
   }, []);
@@ -530,13 +540,14 @@ export default function App() {
 
   const deductLifeAndResetStreak = () => {
     setProfile((curr) => {
-      const nextLives = Math.max(0, curr.lives - 1);
+      const synced = regenerateLives(curr);
+      const nextLives = Math.max(0, synced.lives - 1);
       return {
-        ...curr,
+        ...synced,
         lives: nextLives,
         lastLifeTimestamp:
-          curr.lives >= curr.maxLives ? Date.now() : curr.lastLifeTimestamp,
-        streak: activeTrialId ? curr.streak : 0,
+          synced.lives >= synced.maxLives ? Date.now() : synced.lastLifeTimestamp,
+        streak: activeTrialId ? synced.streak : 0,
       };
     });
   };
@@ -550,16 +561,16 @@ export default function App() {
         return;
       }
       deductLifeAndResetStreak();
-      if (current.lives - 1 <= 0) {
-        setModal('NO_LIVES');
-        return;
-      }
     }
     setModal('NONE');
     setRunKey((k) => k + 1);
   };
 
-  const handleGiveUp = (stats: { completedBottles: number; totalBottles: number }) => {
+  const handleGiveUp = (stats: {
+    completedBottles: number;
+    totalBottles: number;
+    extraFlasksUsed: number;
+  }) => {
     const prevFails = levelFailCounts[activeLevel.levelNumber] ?? 0;
     const nextFailCount = prevFails + 1;
     setLevelFailCounts((prev) => ({
@@ -585,6 +596,7 @@ export default function App() {
     setDefeatSnap({
       completedBottles: stats.completedBottles,
       totalBottles: stats.totalBottles,
+      extraFlasksUsed: stats.extraFlasksUsed,
       cgTier,
       newlyUnlockedCgCoins: cgUnlockPreview.newlyUnlocked ? cgUnlockPreview.rewardCoins : null,
     });
@@ -592,6 +604,7 @@ export default function App() {
   };
 
   const handleContinueAfterDefeat = () => {
+    if ((defeatSnap?.extraFlasksUsed ?? 0) >= 3) return;
     if (profile.boosters.extraFlask > 0) {
       setProfile((curr) => ({
         ...curr,
@@ -624,10 +637,6 @@ export default function App() {
         return;
       }
       deductLifeAndResetStreak();
-      if (current.lives - 1 <= 0) {
-        setModal('NO_LIVES');
-        return;
-      }
     }
     setModal('NONE');
     setRunKey((k) => k + 1);
@@ -839,6 +848,11 @@ export default function App() {
       setAdRequest(null);
       return;
     } else if (adRequest.kind === 'rewarded_continue') {
+      if ((defeatSnap?.extraFlasksUsed ?? 0) >= 3) {
+        setAdRequest(null);
+        setModal('DEFEAT');
+        return;
+      }
       playAddBottleSound(profile.soundEnabled);
       setContinueGrantTick((c) => c + 1);
       setModal('NONE');
@@ -1005,6 +1019,7 @@ export default function App() {
 
           <GameModals
             modal={modal}
+            isTrialMode={Boolean(activeTrialId)}
             profile={profile}
             nowMs={nowMs}
             victorySnapshot={victorySnap}

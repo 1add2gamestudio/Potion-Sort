@@ -165,7 +165,7 @@ export const LevelMapView: React.FC<{
           const isSuperHard = spec.difficulty === 'super_hard';
           const isHard = spec.difficulty === 'hard';
           const milestone =
-            lvl === 4
+            lvl === 2
               ? t('milestoneMystery')
               : lvl === 6
               ? t('milestoneCork')

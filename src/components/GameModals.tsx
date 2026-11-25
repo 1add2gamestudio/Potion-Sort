@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Award, CheckCircle2, Crown, Eye, Gift, Play, Sparkles, Tv, Vibrate } from 'lucide-react';
 import type { AdRequest } from '../game/adService';
 import { MONETIZATION_ENABLED } from '../game/adService';
@@ -54,12 +54,14 @@ export interface VictorySnapshot {
 export interface DefeatSnapshot {
   completedBottles: number;
   totalBottles: number;
+  extraFlasksUsed?: number;
   cgTier: CgTier;
   newlyUnlockedCgCoins?: number | null;
 }
 
 interface GameModalsProps {
   modal: PlayModal;
+  isTrialMode?: boolean;
   profile: PlayerProfile;
   nowMs: number;
   victorySnapshot: VictorySnapshot | null;
@@ -95,6 +97,7 @@ function formatTime(sec: number): string {
 
 export const GameModals: React.FC<GameModalsProps> = ({
   modal,
+  isTrialMode = false,
   profile,
   nowMs,
   victorySnapshot,
@@ -122,6 +125,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
   const { t, ingredientName } = useI18n();
   const [adSecondsLeft, setAdSecondsLeft] = useState(2);
   const [hapticJustTested, setHapticJustTested] = useState(false);
+  const hapticTestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const nativeHaptics = isNativeHapticsSupported();
 
@@ -129,6 +133,14 @@ export const GameModals: React.FC<GameModalsProps> = ({
     playUiClick(profile.soundEnabled);
     triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
   };
+
+  useEffect(() => {
+    return () => {
+      if (hapticTestTimerRef.current) {
+        clearTimeout(hapticTestTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (modal !== 'AD_SIMULATION') return;
@@ -152,12 +164,20 @@ export const GameModals: React.FC<GameModalsProps> = ({
     triggerSemanticHaptic(true, 'test');
     playPickupClink(profile.soundEnabled);
     setHapticJustTested(true);
-    setTimeout(() => setHapticJustTested(false), 900);
+    if (hapticTestTimerRef.current) {
+      clearTimeout(hapticTestTimerRef.current);
+    }
+    hapticTestTimerRef.current = setTimeout(() => {
+      setHapticJustTested(false);
+      hapticTestTimerRef.current = null;
+    }, 900);
   };
 
+  const reachedMaxContinueFlasks = (defeatSnapshot?.extraFlasksUsed ?? 0) >= 3;
   const canContinueWithFlask = profile.boosters.extraFlask > 0;
   const canContinueWithCoins = profile.coins >= CONTINUE_COIN_COST;
-  const canContinueWithEconomy = canContinueWithFlask || canContinueWithCoins;
+  const canContinueWithEconomy =
+    !reachedMaxContinueFlasks && (canContinueWithFlask || canContinueWithCoins);
 
   return (
     <div
@@ -174,7 +194,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 {t('pauseTitle')}
               </h2>
               <p className="text-xs font-bold text-[#FFF5DB] mt-1">
-                {profile.streak > 0
+                {isTrialMode
+                  ? t('pauseTrialTip')
+                  : profile.streak > 0
                   ? t('pauseStreakWarn', { n: profile.streak })
                   : t('pauseRelaxTip')}
               </p>
@@ -202,7 +224,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 className="candy-btn-amber w-full py-2.5 text-white font-black text-xs game-stroke-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Restart3DIcon className="w-4 h-4" />
-                <span>{t('restartLevelBtn')}</span>
+                <span>{isTrialMode ? t('restartTrialBtn') : t('restartLevelBtn')}</span>
               </button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -404,7 +426,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
 
             <div className="space-y-2">
               {/* Track 1: Rewarded Video Free Continue */}
-              {MONETIZATION_ENABLED && (
+              {MONETIZATION_ENABLED && !reachedMaxContinueFlasks && (
               <button
                 type="button"
                 onClick={() => {
@@ -433,7 +455,9 @@ export const GameModals: React.FC<GameModalsProps> = ({
               >
                 <ExtraBottle3DIcon className="w-4 h-4 shrink-0" />
                 <span>
-                  {canContinueWithFlask
+                  {reachedMaxContinueFlasks
+                    ? t('continueMaxFlasksBtn')
+                    : canContinueWithFlask
                     ? t('continueWithFlaskBtn', { n: profile.boosters.extraFlask })
                     : t('continueWithCoinsBtn', { cost: CONTINUE_COIN_COST })}
                 </span>
@@ -448,7 +472,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
                 }}
                 className="candy-btn-blue-pill w-full py-2.5 text-white font-black text-sm game-stroke-sm cursor-pointer"
               >
-                {t('tryAgainBtn')}
+                {isTrialMode ? t('tryAgainTrialBtn') : t('tryAgainBtn')}
               </button>
 
               <button

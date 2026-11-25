@@ -245,9 +245,9 @@ export function applyShuffleBooster(bottles: Bottle[], seed = Date.now()): Bottl
   return next;
 }
 
-export function addExtraFlaskBooster(bottles: Bottle[]): Bottle[] {
+export function addExtraFlaskBooster(bottles: Bottle[], maxExtra = 2): Bottle[] {
   const extraCount = bottles.filter((b) => b.isExtra).length;
-  if (extraCount >= 2) return bottles;
+  if (extraCount >= maxExtra) return bottles;
   const next = cloneBottles(bottles);
   next.push({
     id: `extra-${extraCount + 1}`,

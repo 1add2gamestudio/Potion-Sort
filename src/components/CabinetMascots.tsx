@@ -201,7 +201,7 @@ const CloudSpeechBubble: React.FC<{ speech: MascotSpeech }> = ({ speech }) => {
       key={speech.id}
       role="status"
       aria-live="polite"
-      className={`pointer-events-none absolute bottom-[45px] z-[24] ${
+      className={`pointer-events-none absolute bottom-[45px] z-[24] max-w-[calc(100%-172px)] ${
         isFox
           ? 'left-[84px] animate-cloud-pop-left'
           : 'right-[84px] animate-cloud-pop-right'
@@ -209,7 +209,7 @@ const CloudSpeechBubble: React.FC<{ speech: MascotSpeech }> = ({ speech }) => {
     >
       <div
         ref={boxRef}
-        className="relative inline-block min-w-[138px] max-w-[216px] animate-mist-float"
+        className="relative inline-block min-w-[132px] max-w-[min(212px,100%)] animate-mist-float"
       >
         {/* PURE CUBIC-BEZIER ORGANIC CLOUD + INTEGRATED TAIL + TRAILING DROPLETS */}
         <svg

@@ -137,4 +137,14 @@ test('Shuffle and +1 Extra Flask boosters preserve total layer counts and add ca
   const extended = addExtraFlaskBooster(lv5.bottles);
   assert.equal(extended.length, lv5.bottles.length + 1);
   assert.equal(extended[extended.length - 1].layers.length, 0);
+
+  // Default cap stops at 2 extra flasks; Defeat Continue can grant an emergency 3rd flask
+  const twoExtra = addExtraFlaskBooster(extended);
+  assert.equal(twoExtra.length, lv5.bottles.length + 2);
+  const blockedThird = addExtraFlaskBooster(twoExtra);
+  assert.equal(blockedThird.length, lv5.bottles.length + 2);
+  const emergencyThird = addExtraFlaskBooster(twoExtra, 3);
+  assert.equal(emergencyThird.length, lv5.bottles.length + 3);
+  const blockedFourth = addExtraFlaskBooster(emergencyThird, 3);
+  assert.equal(blockedFourth.length, lv5.bottles.length + 3);
 });

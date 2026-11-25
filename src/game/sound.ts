@@ -853,6 +853,19 @@ export function preloadPourSounds(): void {
   void loadPourBuffer(g.ctx);
 }
 
+/**
+ * Synchronously unlocks Web Audio inside a user gesture handler (critical on iOS WKWebView/Safari)
+ * and preloads the ASMR pour buffer.
+ */
+export function unlockAudioForGesture(startBgmIfEnabled: boolean): void {
+  const g = ensureGraph();
+  if (!g) return;
+  void loadPourBuffer(g.ctx);
+  if (startBgmIfEnabled) {
+    startBgm(true);
+  }
+}
+
 export function triggerHaptic(enabled: boolean, durationMs = 10): void {
   if (!enabled || typeof navigator === 'undefined') return;
   try {
@@ -883,8 +896,12 @@ function playFallbackElement(
     if (stopped) return;
     stopped = true;
     if (timer) clearTimeout(timer);
-    el.pause();
-    el.src = '';
+    try {
+      el.pause();
+      el.currentTime = 0;
+    } catch {
+      // Ignore already disposed element
+    }
     onDone?.();
   };
 

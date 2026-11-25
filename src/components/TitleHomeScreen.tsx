@@ -283,7 +283,17 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
             </button>
 
             {showStreakTip && (
-              <div className="absolute right-[72px] top-0 w-56 candy-panel-frame p-2.5 text-left z-30 space-y-1.5">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setShowStreakTip(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+                    setShowStreakTip(false);
+                  }
+                }}
+                className="absolute right-[72px] top-0 w-56 candy-panel-frame p-2.5 text-left z-30 space-y-1.5 cursor-pointer"
+              >
                 <div className="flex items-center justify-between text-[11px] font-black text-[#FFF7D6]">
                   <span>{t('streakTooltipTitle', { n: profile.streak })}</span>
                   <span className="text-[10px] text-[#FFE89A] font-tabular">

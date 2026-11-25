@@ -135,7 +135,11 @@ interface GameplayScreenProps {
     elapsedSec: number;
     bottlesCount: number;
   }) => void;
-  onGiveUp: (stats: { completedBottles: number; totalBottles: number }) => void;
+  onGiveUp: (stats: {
+    completedBottles: number;
+    totalBottles: number;
+    extraFlasksUsed: number;
+  }) => void;
   onMarkTutorialSeen?: (tipId: TutorialTipId) => void;
 }
 
@@ -215,6 +219,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   const [activeMechanicTip, setActiveMechanicTip] = useState<MechanicTipId | null>(null);
 
   const wonRef = useRef(false);
+  const movesRef = useRef(0);
   const elapsedSecRef = useRef(0);
   const bottleComboRef = useRef(0);
   const pourRafRef = useRef<number | null>(null);
@@ -568,7 +573,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       lastContinueTickRef.current = continueGrantTick;
       cancelPourAnimation();
       setSelectedId(null);
-      setBottles((curr) => addExtraFlaskBooster(curr));
+      setBottles((curr) => addExtraFlaskBooster(curr, 3));
       triggerSemanticHaptic(profile.hapticsEnabled, 'bottleSeal');
       pushReaction('dragon', t('reactExtraFlaskAdded'));
     }
@@ -576,6 +581,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
 
   useEffect(() => {
     wonRef.current = false;
+    movesRef.current = 0;
     bottleComboRef.current = 0;
     cancelPourAnimation();
     cancelAllSealAnimations();
@@ -596,41 +602,44 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     setElapsedSec(0);
     elapsedSecRef.current = 0;
     setFreeStreakUndos(profile.streak >= 3 ? 1 : 0);
-    const unseenTip = detectUnseenMechanicTip(fresh, profile.seenTutorials);
-    setActiveMechanicTip(unseenTip);
 
     const isFirstTimeBasics =
       !isTrialMode && level.levelNumber === 1 && !profile.seenTutorials.includes('basics');
+    const unseenTip = isFirstTimeBasics
+      ? null
+      : detectUnseenMechanicTip(fresh, profile.seenTutorials);
+    setActiveMechanicTip(unseenTip);
+
     if (isFirstTimeBasics) {
       pushReaction('fox', t('tutorialBasicsHint'), 6000);
     } else if (!unseenTip && level.mechanicsIntroduced[0]) {
       pushReaction('fox', t('reactNewCraft', { name: mechanicName(level.mechanicsIntroduced[0]) }));
     }
 
-    if (profile.streak >= 1 && !isTrialMode) {
+    if (profile.streak >= 1 && !isTrialMode && !isFirstTimeBasics) {
+      const streakAtStart = profile.streak;
       const timer = setTimeout(() => {
-        setBottles((curr) => {
-          let nextState = curr;
-          const autoMoves = profile.streak >= 2 ? 2 : 1;
-          let applied = 0;
-          for (let i = 0; i < autoMoves; i++) {
-            const hint = findSmartHintMove(nextState);
-            if (!hint) break;
-            const out = executePour(nextState, hint.sourceId, hint.targetId);
-            if (!out) break;
-            nextState = out.bottles;
-            applied += 1;
-          }
-          if (applied > 0) {
-            pushReaction(
-              'dragon',
-              profile.streak >= 3
-                ? t('reactStreakBoost3', { n: profile.streak, count: applied })
-                : t('reactStreakBoost', { n: profile.streak, count: applied })
-            );
-          }
-          return nextState;
-        });
+        if (wonRef.current || movesRef.current > 0) return;
+        let nextState = cloneBottles(fresh);
+        const autoMoves = streakAtStart >= 2 ? 2 : 1;
+        let applied = 0;
+        for (let i = 0; i < autoMoves; i++) {
+          const hint = findSmartHintMove(nextState);
+          if (!hint) break;
+          const out = executePour(nextState, hint.sourceId, hint.targetId);
+          if (!out || isLevelComplete(out.bottles)) break;
+          nextState = out.bottles;
+          applied += 1;
+        }
+        if (applied > 0) {
+          setBottles(nextState);
+          pushReaction(
+            'dragon',
+            streakAtStart >= 3
+              ? t('reactStreakBoost3', { n: streakAtStart, count: applied })
+              : t('reactStreakBoost', { n: streakAtStart, count: applied })
+          );
+        }
       }, 240);
       return () => clearTimeout(timer);
     }
@@ -718,7 +727,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   };
 
   const handleSelectBottle = (bottleId: string) => {
-    if (wonRef.current) return;
+    if (wonRef.current || isPaused) return;
     if (activePour && (activePour.sourceId === bottleId || activePour.targetId === bottleId)) {
       return;
     }
@@ -765,6 +774,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
         setHistory((prev) => [...prev, cloneBottles(bottles)]);
         setBottles(outcome.bottles);
         setSelectedId(null);
+        movesRef.current += 1;
         setMoves((m) => m + 1);
         triggerMagicSortPour(
           source.id,
@@ -872,12 +882,19 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       playErrorTap(profile.soundEnabled);
       triggerSemanticHaptic(profile.hapticsEnabled, 'error');
       triggerBottleShake(bottleId);
+      if (clicked.obstacle.type === 'cork') {
+        pushReaction('fox', t('reactCorkLocked', { color: colorName(clicked.obstacle.requiredColor) }));
+      } else if (clicked.obstacle.type === 'crate') {
+        pushReaction('dragon', t('reactCrateLocked', { color: colorName(clicked.obstacle.lockColor) }));
+      } else if (clicked.obstacle.type === 'curtain') {
+        pushReaction('fox', t('reactCurtainLocked', { color: colorName(clicked.obstacle.unlockColor) }));
+      }
       setSelectedId(null);
     }
   };
 
   const handleUndo = () => {
-    if (history.length === 0 || wonRef.current) return;
+    if (history.length === 0 || wonRef.current || isPaused) return;
     let boughtWithCoins = false;
     if (freeStreakUndos > 0) {
       setFreeStreakUndos((c) => c - 1);
@@ -892,6 +909,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     }
     cancelPourAnimation();
     cancelAllSealAnimations();
+    clearFxTimers();
     const prev = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
     setBottles(prev);
@@ -907,7 +925,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   };
 
   const handleShuffle = () => {
-    if (wonRef.current) return;
+    if (wonRef.current || isPaused) return;
     let boughtWithCoins = false;
     if (!onConsumeBooster('shuffle')) {
       if (!onBuyInGameBooster('shuffle')) {
@@ -920,6 +938,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
     }
     cancelPourAnimation();
     cancelAllSealAnimations();
+    clearFxTimers();
     setHistory((h) => [...h, cloneBottles(bottles)]);
     setBottles((curr) => applyShuffleBooster(curr, Date.now()));
     setSelectedId(null);
@@ -934,7 +953,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   };
 
   const handleAddFlask = () => {
-    if (wonRef.current) return;
+    if (wonRef.current || isPaused) return;
     const extraCount = bottles.filter((b) => b.isExtra).length;
     if (extraCount >= 2) {
       playErrorTap(profile.soundEnabled);
@@ -1342,6 +1361,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
                           b.layers.every((l) => !l.hidden && l.color === b.layers[0].color)
                       ).length,
                       totalBottles: level.colorCount,
+                      extraFlasksUsed: bottles.filter((b) => b.isExtra).length,
                     });
                   }}
                   className="px-2.5 py-0.5 rounded-full bg-[#FFE259] text-[#4D1D00] text-[10px] font-black cursor-pointer whitespace-nowrap"

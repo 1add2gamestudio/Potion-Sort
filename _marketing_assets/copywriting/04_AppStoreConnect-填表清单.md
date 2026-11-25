@@ -199,13 +199,51 @@ Xcode → 顶部设备选 Any iOS Device (arm64)
 
 上传后等 5~40 分钟，回到这一页点「添加构建版本」即可选中。
 
-**③ 签名注意（你之前踩过的坑）**
+**③ 签名：上传前必须补齐「分发」凭据（否则必失败）**
 
-工程的签名是手动模式（`Manual` + `PotionSort Dev` + Team `6J48WYSF8N`），**不要去 Xcode 的 Signing & Capabilities 页面点「Automatically manage signing」**——那样会把 `project.pbxproj` 里的三行配置冲掉，装机和导出都会失败。
+工程当前是手动签名，且本机只装了一个**开发型**描述文件：
 
-导出向导里如果出现签名相关选项，保持默认即可，Xcode 会自己换成 App Store 分发证书。
+```
+CODE_SIGN_STYLE = Manual
+PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*] = "PotionSort Dev"   ← Development 类型，绑了 3 台测试机
+DEVELOPMENT_TEAM[sdk=iphoneos*] = 6J48WYSF8N
+```
 
-> ⚠️ **2026-11-25 又改过代码**（合并同事提交：移除速通系统、重做吉祥物气泡），更早打的所有 Archive 全部作废，必须重新 Archive。
+开发型描述文件打出来的包 Apple **不收**，上传会报：
+`Invalid Provisioning Profile. The provisioning profile included in the bundle is invalid for App Store submission.`
+
+这就是「⌘R 装机一直正常、但一上架就失败」的根源——装机用开发证书就够，上架需要分发证书 + App Store 描述文件，本机一个都没有。
+
+**做法 A（推荐）：改成自动签名**
+```
+Xcode → 左侧点蓝色 App 工程 → TARGETS: App
+     → Signing & Capabilities → 勾 Automatically manage signing
+     → Team 选 6J48WYSF8N（不是 45CJ3TA857，那是免费个人号）
+```
+Xcode 会自动申请 Apple Distribution 证书和 App Store 描述文件。**不会影响 ⌘R 装机**（它同时维护开发凭据），以后描述文件到期也会自动续。
+
+改完 `project.pbxproj` 里那三行会被重写，这是正常的，不需要手工还原。
+
+**做法 B（保留手动签名，不推荐）**
+去 `developer.apple.com → Certificates, Identifiers & Profiles → Profiles → +` 新建一个 **App Store** 类型、Bundle ID 选 `com.potionsort.puzzle` 的描述文件，下载后双击安装，再在 `Build Settings → Provisioning Profile` 里指定它。
+
+改完签名配置后，之前打的所有 Archive 都作废，必须重新 Archive。
+
+---
+
+## 9.1 代码变更记录（Archive 前核对）
+
+> ⚠️ **2026-11-25 最新提交 `45fd88a`（同事推送，名为 "implement haptics and app lifecycle"）**
+>
+> 该提交除修 bug 外，还包括这些**审核员能感知到**的变化：
+> - 庆典试炼（Festival Trials）改为**不消耗体力、不影响主线连胜**，暂停页新增对应提示
+> - 连续使用额外空瓶复活的上限从 2 只提高到 **3 只**，达上限后按钮显示「架子空瓶已达上限」
+> - **体力耗尽不再在结算页弹窗**，改为下次点关卡时提示（流程更顺，不影响内容可达性）
+> - 修复 iOS 首次点击无法出声的问题（`unlockAudioForGesture`，WKWebView 必须在手势内同步解锁 AudioContext）
+> - 连胜自动倾倒改为仅在开局、玩家尚未操作时执行，且不会把局面直接走完
+> - 关卡地图「神秘加码」里程碑从第 4 关移到**第 2 关**
+>
+> 更早打的 Archive 全部作废，必须重新 Archive、重新上传。
 
 ---
 
@@ -229,6 +267,7 @@ WHAT TESTERS WILL SEE
 - No advertising of any kind. No ad SDK is integrated.
 - No in-app purchases and no real-money transactions. All boosters are bought with in-game coins or crafted from essences earned by clearing levels.
 - No countdown timer and no move limit on any level. Levels cannot be failed by running out of time.
+- Lives are only spent when you retry a level. They refill automatically over time, and can also be refilled with in-game coins — never with real money. Festival Trials cost no lives at all. Running low on lives never locks any content.
 - All content is reachable by normal play. Nothing is gated behind payment or login.
 
 Localization: English and Simplified Chinese are both fully translated; the in-game settings menu switches languages live.
@@ -247,6 +286,7 @@ If anything is unclear during review, please contact us at the email above and w
 - 无任何广告，未集成任何广告 SDK。
 - 无内购、无真实货币交易；所有道具都用游戏内金币购买，或用通关获得的精华在炼金台自制。
 - 所有关卡均无倒计时、无步数上限，不会因超时而失败。
+- 体力仅在重试关卡时消耗，会随时间自动恢复，也可用游戏内金币补充，全程不涉及真实货币；庆典试炼完全不消耗体力，体力不足也不会锁死任何内容。
 - 全部内容可通过正常游玩解锁，没有任何内容被付费或登录阻挡。
 
 本地化：英文与简体中文均为完整翻译，可在游戏内设置中实时切换。
@@ -288,8 +328,10 @@ If anything is unclear during review, please contact us at the email above and w
 
 ```
 □ 5 张截图已按新版界面重截，商店图里没有任何内购卡片
-□ Xcode 已登录付费开发者账号（Team 6J48WYSF8N）
+□ 03-关卡地图.png 已重拍（「神秘加码」标签现在挂第 2 关，旧图挂在第 4 关）
+□ Xcode 已登录付费开发者账号（Team 6J48WYSF8N，不是 45CJ3TA857）
+□ 签名已改为 Automatically manage signing（或已手动安装 App Store 类型描述文件）
 □ privacy.html / support.html 里的 YOUR_EMAIL_HERE 已换成真实邮箱，并已部署
-□ 重新 Archive 并上传了一个构建版本
+□ 重新 Archive 并上传了一个构建版本（build 号未与历史重复）
 □ 后台「App 内购买项目」保持为空
 ```

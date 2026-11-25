@@ -134,18 +134,17 @@ water sort,potion puzzle,color sort,liquid sort,asmr,relaxing,brain teaser,cozy 
 
 | 字段 | 填什么 | 状态 |
 |---|---|---|
-| 技术支持网址（必填） | 部署后的 `support.html` 地址 | ⬜ 待部署 |
-| 隐私政策网址（必填） | 部署后的 `privacy.html` 地址 | ⬜ 待部署 |
-| 营销网址（选填） | 可留空，或填官网 | 可空 |
+| 技术支持网址（必填） | `https://1add2gamestudio.github.io/Potion-Sort/support.html` | ✅ 已上线 |
+| 隐私政策网址（必填） | `https://1add2gamestudio.github.io/Potion-Sort/privacy.html` | ✅ 已上线 |
+| 营销网址（选填） | `https://1add2gamestudio.github.io/Potion-Sort/` 或留空 | 可空 |
 
-页面已生成在：
-```
-~/Projects/GameSource/Typescript/Potion-Sort/_marketing_assets/appstore_pages/
-  privacy.html
-  support.html
-```
+已部署完成（GitHub Pages，发布源为仓库 `docs/` 目录，2026-11-25 验证三个地址均返回 200）：
 
-里面有 `YOUR_EMAIL_HERE` 占位符，**必须换成你的真实邮箱**（Apple 会人工点开看，留占位符会被拒）。两页文案已同步为「无广告、无内购」版本。
+- 落地页 `https://1add2gamestudio.github.io/Potion-Sort/`
+- 联系方式已统一为 `john99ftvn@gmail.com`，全站 0 处占位符
+
+**以后要改这两页内容**：编辑 `_marketing_assets/appstore_pages/*.html` → 复制到 `docs/` → 推送，约 1 分钟生效。
+（`docs/` 下不要放以下划线开头的目录，GitHub Pages 会跳过。）
 
 ---
 
@@ -349,7 +348,7 @@ If anything is unclear during review, please contact us at the email above and w
 □ 03-关卡地图.png 已重拍（「神秘加码」标签现在挂第 2 关，旧图挂在第 4 关）
 □ Xcode 已登录付费开发者账号（Team 6J48WYSF8N）
 □ 签名已改为 Automatically manage signing（或已手动安装 App Store 类型描述文件）
-□ privacy.html / support.html 里的 YOUR_EMAIL_HERE 已换成真实邮箱，并已部署
+☑ privacy.html / support.html 已换成 john99ftvn@gmail.com 并部署到 GitHub Pages（两个地址均 200）
 □ 重新 Archive 并上传了一个构建版本（build 号未与历史重复）
 □ 后台「App 内购买项目」保持为空
 ```

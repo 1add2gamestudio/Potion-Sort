@@ -218,7 +218,7 @@ DEVELOPMENT_TEAM[sdk=iphoneos*] = 6J48WYSF8N
 ```
 Xcode → 左侧点蓝色 App 工程 → TARGETS: App
      → Signing & Capabilities → 勾 Automatically manage signing
-     → Team 选 6J48WYSF8N（不是 45CJ3TA857，那是免费个人号）
+     → Team 选 6J48WYSF8N（本机只有这一个团队）
 ```
 Xcode 会自动申请 Apple Distribution 证书和 App Store 描述文件。**不会影响 ⌘R 装机**（它同时维护开发凭据），以后描述文件到期也会自动续。
 
@@ -347,7 +347,7 @@ If anything is unclear during review, please contact us at the email above and w
 ```
 □ 5 张截图已按新版界面重截，商店图里没有任何内购卡片
 □ 03-关卡地图.png 已重拍（「神秘加码」标签现在挂第 2 关，旧图挂在第 4 关）
-□ Xcode 已登录付费开发者账号（Team 6J48WYSF8N，不是 45CJ3TA857）
+□ Xcode 已登录付费开发者账号（Team 6J48WYSF8N）
 □ 签名已改为 Automatically manage signing（或已手动安装 App Store 类型描述文件）
 □ privacy.html / support.html 里的 YOUR_EMAIL_HERE 已换成真实邮箱，并已部署
 □ 重新 Archive 并上传了一个构建版本（build 号未与历史重复）

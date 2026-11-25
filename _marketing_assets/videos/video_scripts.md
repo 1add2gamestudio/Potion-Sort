@@ -14,7 +14,7 @@
 | 01 | `video_01_concept_pv.mp4` | 24s | **概念宣传片 PV**（官网 Hero 预览 + App Store 首位预览） | 温柔治愈起调 → 中段轻快展播 → 高光定格 |
 | 02 | `video_02_gameplay_obstacles.mp4` | 22s | **核心玩法与四大机关演示**（App Store 玩法向 / TapTap 推荐） | 节奏明快、机关递进、三大道具兜底 |
 | 03 | `video_03_companions_cgs.mp4` | 20s | **双萌宠与六阶 CG 图鉴秀**（小红书 / B 站 / IG 种草） | 角色特写推进 + 胜败三阶反差萌剪辑 |
-| 04 | `video_04_speed_streak_alembic.mp4` | 18s | **极速速通、连胜与炼金台爽点集锦**（信息流买量 / 短视频） | 强目标感、金币与火焰高燃正反馈 |
+| 04 | `video_04_streak_alembic.mp4` | 18s | **零压力解谜、连胜与炼金台爽点集锦**（信息流买量 / 短视频） | 松弛节奏、金币与火焰高燃正反馈 |
 | 05 | `video_05_launch_teaser.mp4` | 15s | **七日签到与上线倒计时预告**（上线预热 / 预约卡片） | 15 秒黄金短钩子、强 CTA 引导预约 |
 
 ---
@@ -62,16 +62,16 @@
 
 ---
 
-## 视频 04：极速速通、连胜与炼金台爽点集锦（`video_04_speed_streak_alembic.mp4` · 18 秒）
+## 视频 04：零压力解谜、连胜与炼金台爽点集锦（`video_04_streak_alembic.mp4` · 18 秒）
 
 - **音频设计**：高能节奏感音律 + 连续清脆倒水音节拍。
 
 | 镜号 | 时间轴 | 时长 | 调用素材（相对 `raw_assets/`） | 运镜方式 | 画面主/副字幕（EN / ZH） | 音效节点 |
 |---|---|---|---|---|---|---|
-| S1 | 00:00–00:04.5 | 4.5s | `images/stage_c_fullwidth_1794988696753.jpg` + `ui/icon-coin.png` | 动感推近 | `BEAT 60 SECONDS` / `极速通关立奖 +25 额外金币！` | 01s 倒水声 |
-| S2 | 00:04.5–00:09 | 4.5s | `cg/victory-tier-2.jpg` + `ui/icon-streak-flame.png` | 左移+微推 | `IGNITE WIN STREAKS` / `3/5/8 连胜开局白嫖免费道具` | 05s 倒水声 |
+| S1 | 00:00–00:04.5 | 4.5s | `images/stage_c_fullwidth_1794988696753.jpg` + `ui/icon-flask.png` | 动感推近 | `NO TIMER, NO RUSH` / `不限时、不限步，想多久就想多久` | 01s 倒水声 |
+| S2 | 00:04.5–00:09 | 4.5s | `cg/victory-tier-2.jpg` + `ui/icon-streak-flame.png` | 左移+微推 | `IGNITE WIN STREAKS` / `1/2/3 连胜自动开局 + 免费撤回` | 05s 倒水声 |
 | S3 | 00:09–00:13.5 | 4.5s | `cg/victory-tier-3.jpg` + `ui/icon-cauldron.png` | 居中推近 | `SUN ALEMBIC CRAFT` / `通关攒精粹，坩埚免费炼神助` | 10s 倒水声 |
-| S4 | 00:13.5–00:18 | 4.5s | `images/solstice_home_3d_scene_1794980022597.jpg` + `ui/icon-shield.png` | 稳态定格 | `PURE AD-FREE OPTION` / `连胜护盾 + 一键去广告，畅玩无阻` | 15s 尾音收束 |
+| S4 | 00:13.5–00:18 | 4.5s | `images/solstice_home_3d_scene_1794980022597.jpg` + `ui/icon-flask.png` | 稳态定格 | `NO ADS · NO IAP` / `无广告、无内购，离线畅玩` | 15s 尾音收束 |
 
 ---
 

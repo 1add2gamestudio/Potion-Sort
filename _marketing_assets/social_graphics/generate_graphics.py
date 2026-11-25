@@ -448,13 +448,13 @@ def generate_all() -> None:
     p12 += add_footer_brand(W2, H2)
     jobs.append(("post_12.png", p12))
 
-    # Post 13: Speed Bonus & 3 Boosters
+    # Post 13: No Timer & 3 Boosters
     p13 = build_base_bg("images/solstice_home_3d_scene_1794980022597.jpg", W2, H2, 520, 520)
     p13 += add_header_text(
         W2,
         "GAMEPLAY DEEP DIVE  #03",
-        "SPEED & BOOSTERS",
-        "Beat the Clock for Bonus Coins  ·  Turn Any Tide",
+        "NO TIMER · BOOSTERS",
+        "Think As Long As You Like  ·  Turn Any Tide",
         y_kicker=72, y_title=124, y_sub=222, title_size=72, sub_size=30, kicker_size=26,
     )
     p13 += [
@@ -464,9 +464,9 @@ def generate_all() -> None:
         "-stroke", "none",
         "-gravity", "northwest",
         "-font", FONT_BOLD, "-pointsize", "38", "-fill", "#F6C95E",
-        "-annotate", "+140+380", "SPEED BONUS TIMER",
+        "-annotate", "+140+380", "ZERO COUNTDOWN, ZERO PRESSURE",
         "-font", FONT_REG, "-pointsize", "30", "-fill", "#FFF9EC",
-        "-annotate", "+140+445", "Clear under 60s  ->  +25 Bonus Coins\nClear under 120s ->  +12 Bonus Coins",
+        "-annotate", "+140+445", "No timer. No move limit.\nPlan any pour for as long as you like.",
         "-font", FONT_BOLD, "-pointsize", "38", "-fill", "#7CE5A8",
         "-annotate", "+140+660", "3 WORKSHOP BOOSTERS",
         "-font", FONT_REG, "-pointsize", "29", "-fill", "#EAE2F8",

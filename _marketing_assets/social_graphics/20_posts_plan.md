@@ -77,13 +77,13 @@
   - 主背景：`../raw_assets/images/solstice_home_3d_scene_1794980022597.jpg`
   - 居中视窗：`../raw_assets/cg/victory-tier-2.jpg`
   - UI 图标：`../raw_assets/ui/icon-cauldron.png`、`../raw_assets/ui/icon-streak-flame.png`、`../raw_assets/ui/icon-shield.png`、`../raw_assets/ui/icon-coin.png`
-- **画面构图建议**：中部展示「二阶·琉璃华彩」丰收图鉴，底部四联图标矩阵呈现「炼金台 + 连胜护盾 + 7 日签到 + 永久去广告」四大长线陪伴亮点。
+- **画面构图建议**：中部展示「二阶·琉璃华彩」丰收图鉴，底部四联图标矩阵呈现「炼金台 + 连胜护盾 + 7 日签到 + 离线畅玩」四大长线陪伴亮点。
 - **图面大字（EN / ZH）**：
   - 主标题：`BREW, STREAK & RELAX` / `日日好礼 纯净畅玩`
-  - 副标题：`Sun Alembic, 7-Day Calendar & One-Tap Ad-Free Mode` / `太阳炼金台与七日签到，随时开启纯净模式`
+  - 副标题：`Sun Alembic, 7-Day Calendar & Fully Offline Play` / `太阳炼金台与七日签到，随时随地离线畅玩`
 - **发布正文与 Hashtag**：
-  > 通关攒精粹，在太阳炼金台一键合成道具与金币！更有 7 日登录日历、第 7 天限定大奖，以及一键永久去广告，把时间还给纯粹的解谜快乐。
-  > `#七日签到 #休闲养成 #纯净去广告 #PotionSort #每日一局`
+  > 通关攒精粹，在太阳炼金台一键合成道具与金币！更有 7 日登录日历、第 7 天限定大奖，全程无广告无内购、不用联网，把时间还给纯粹的解谜快乐。
+  > `#七日签到 #休闲养成 #离线单机 #PotionSort #每日一局`
 
 ---
 
@@ -183,17 +183,17 @@
   > 4️⃣ 炼金帘幕（Lv22）：看准步数节奏，帘幕开合有规律！
   > `#游戏攻略 #解谜技巧 #PotionSort #烧脑玩法`
 
-### Post 13｜机制拆解：极速通关奖励与三大道具（Speed Bonus & Boosters）
+### Post 13｜机制拆解：三大道具与零压力玩法（Boosters, No Timers）
 - **使用源素材**：
   - 背景：`../raw_assets/images/solstice_home_3d_scene_1794980022597.jpg`
   - UI 图标：`../raw_assets/ui/icon-undo.png`、`../raw_assets/ui/icon-shuffle.png`、`../raw_assets/ui/icon-flask.png`、`../raw_assets/ui/icon-coin.png`
-- **画面构图建议**：上半部强调 60 秒 / 120 秒极速通关额外金币加成（`+25 / +12 Coins`），下半部三栏图解三大炼金道具（撤回 / 魔药洗牌 / 临时加瓶）的实战使用时机。
+- **画面构图建议**：上半部放「NO TIMER」零倒计时徽章（强调想多久想多久），下半部三栏图解三大炼金道具（撤回 / 魔药洗牌 / 临时加瓶）的实战使用时机。
 - **图面大字（EN / ZH）**：
-  - 主标题：`SPEED BONUS & BOOSTERS` / `极速奖励与三大神助`
-  - 副标题：`Finish Under 60s for +25 Bonus Coins · Undo, Shuffle & Extra Bottle` / `60 秒速通多拿金币，三大道具绝境翻盘`
+  - 主标题：`NO TIMER, JUST THINK` / `不限时，慢慢想`
+  - 副标题：`Undo, Shuffle & Extra Flask · Crafted Free at the Alembic` / `撤销、洗牌、加瓶，炼金台免费自制`
 - **发布正文与 Hashtag**：
-  > 手速与脑速齐飞！60 秒内完成调配直接触发「极速通关奖励 +25 金币」⚡ 遇到卡壳也别慌，撤回一步、魔药洗牌、或临时加一支空瓶，瞬间柳暗花明！
-  > `#速通攻略 #道具指南 #PotionSort #益智解谜`
+  > 没有倒计时，也没有步数上限，愿意盯着一只瓶子想多久就多久 ⏳ 遇到卡壳也别慌，撤回一步、魔药洗牌、或临时加一支空瓶，瞬间柳暗花明！用通关精华在炼金台就能免费自制 ⚗️
+  > `#解压解谜 #道具指南 #PotionSort #益智解谜`
 
 ### Post 14｜机制拆解：太阳炼金台（The Sun Alembic）
 - **使用源素材**：
@@ -283,10 +283,10 @@
   - 背景：`../raw_assets/images/solstice_home_3d_scene_1794980022597.jpg`
   - 角色：`../raw_assets/mascots/fox_clap.png`、`../raw_assets/mascots/dragon_clap.png`
   - UI 图标：`../raw_assets/ui/icon-shield.png`
-- **画面构图建议**：双萌宠对称欢呼构图，中央闪耀护盾徽章与清晰上线号召，强调“无强制弹窗 + 支持永久去广告 + 随时畅玩”。
+- **画面构图建议**：双萌宠对称欢呼构图，中央闪耀护盾徽章与清晰上线号召，强调“无广告 + 无内购 + 断网也能玩”。
 - **图面大字（EN / ZH）**：
   - 主标题：`COMING TO APP STORE` / `药水排序 · 即将上线`
-  - 副标题：`Pure Puzzle Bliss · Optional One-Tap Ad-Free Upgrade` / `预约开启！清爽界面，一键畅享永久纯净模式`
+  - 副标题：`Pure Puzzle Bliss · No Ads, No IAP, Fully Offline` / `预约开启！无广告、无内购，断网也能玩`
 - **发布正文与 Hashtag**：
-  > 阳光正好，玻璃瓶已擦亮 ✨ 《药水排序 Potion Sort》即将登陆 App Store！零强制插屏干扰，支持一键永久去广告，快拉上爱玩解谜的小伙伴一起蹲上线吧！
+  > 阳光正好，玻璃瓶已擦亮 ✨ 《药水排序 Potion Sort》即将登陆 App Store！全程零广告、零内购、不联网，没有倒计时也不限步数，快拉上爱玩解谜的小伙伴一起蹲上线吧！
   > `#AppStore预约 #新游上线 #PotionSort #药水排序 #治愈解谜`

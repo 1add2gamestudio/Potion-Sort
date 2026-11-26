@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>上架完整流程</title>
+<style>
+:root{--fg:#1f2328;--muted:#57606a;--bd:#d0d7de;--bg:#fff;--soft:#f6f8fa;--accent:#0969da}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+ font:16px/1.75 -apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+ -webkit-font-smoothing:antialiased}
+.wrap{display:flex;max-width:1240px;margin:0 auto;padding:0 24px}
+aside{position:sticky;top:0;align-self:flex-start;width:250px;flex:none;
+ max-height:100vh;overflow:auto;padding:32px 20px 32px 0;border-right:1px solid var(--bd)}
+aside h4{margin:0 0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+aside a{display:block;padding:5px 0;color:var(--muted);text-decoration:none;font-size:13.5px;
+ border-left:2px solid transparent;padding-left:10px;margin-left:-2px}
+aside a:hover{color:var(--accent);border-left-color:var(--accent)}
+main{flex:1;min-width:0;padding:32px 0 120px 40px}
+h1{font-size:30px;line-height:1.35;margin:8px 0 24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+h2{font-size:22px;margin:40px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+h3{font-size:17.5px;margin:28px 0 10px}
+h4{font-size:15px;margin:20px 0 8px}
+p{margin:12px 0}
+a{color:var(--accent)}
+code{background:var(--soft);padding:.15em .4em;border-radius:4px;
+ font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--soft);border:1px solid var(--bd);border-radius:8px;
+ padding:14px 16px;overflow:auto;margin:14px 0}
+pre code{background:none;padding:0;font-size:13px;line-height:1.65;white-space:pre}
+blockquote{margin:14px 0;padding:10px 16px;border-left:4px solid var(--bd);
+ background:var(--soft);border-radius:0 6px 6px 0;color:#3d444d}
+blockquote p{margin:6px 0}
+.tw{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{border:1px solid var(--bd);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:650;white-space:nowrap}
+tbody tr:nth-child(even){background:#fbfcfd}
+hr{border:0;border-top:1px solid var(--bd);margin:32px 0}
+ul,ol{padding-left:26px;margin:12px 0}
+li{margin:6px 0}
+del{color:var(--muted)}
+@media (max-width:900px){aside{display:none}main{padding-left:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<aside><h4>目录</h4><a href="#h2">先看这里：你现在有 5 个硬阻塞</a><a href="#h4">0.1 升级 macOS　✅ 已完成</a><a href="#h5">0.2 安装 Xcode 27</a><a href="#h6">0.3 登录付费开发者账号</a><a href="#h7">0.4 检查商业协议状态</a><a href="#h9">1.1 只支持 iPhone（去掉 iPad）</a><a href="#h10">1.2 锁定竖屏</a><a href="#h11">1.3 删掉过时的 armv7 声明</a><a href="#h12">1.4 加出口合规声明（省掉每次上传被追问）</a><a href="#h13">1.5 Privacy Manifest（先不做，看邮件决定）</a><a href="#h15">2.1 代码是最新的</a><a href="#h16">2.2 内购开关是关的</a><a href="#h17">2.3 版本号与 build 号</a><a href="#h18">2.4 同步前端资源到 iOS</a><a href="#h19">2.5 图标与显示名</a><a href="#h21">3.1 打开工程</a><a href="#h22">3.2 改签名方式</a><a href="#h23">3.3 选 Any iOS Device</a><a href="#h24">3.4 归档</a><a href="#h25">3.5 上传</a><a href="#h26">3.6 上传报错对照表</a><a href="#h28">4.1 新建 App</a><a href="#h29">4.2 价格与销售范围</a><a href="#h30">4.3 App 信息</a><a href="#h31">4.4 年龄分级问卷（2025 年 7 月新制）</a><a href="#h32">4.5 App 隐私</a><a href="#h34">5.1 截图</a><a href="#h35">5.2 描述类字段</a><a href="#h36">5.3 支持网址与隐私政策网址（已完成）</a><a href="#h37">5.4 构建版本</a><a href="#h38">5.5 出口合规</a><a href="#h39">5.6 App 审核信息</a><a href="#h41">6.1 提交前 10 项自检</a><a href="#h42">6.2 提交</a><a href="#h43">6.3 等待</a><a href="#h46">8.1 常见拒绝代码（针对你这个项目）</a><a href="#h47">8.2 回复模板</a><a href="#h50">文案文件索引</a><a href="#h53">最后一句话</a></aside>
+<main>
+<h1 id="h1">Potion Sort 上架 App Store 完整流程</h1>
+<blockquote><p>适用范围：2026 年 11 月，iPhone 竖屏游戏首发上架</p><p>工程路径：<code>/Users/ql-001/Projects/GameSource/Typescript/Potion-Sort</code></p><p>Bundle ID：<code>com.potionsort.puzzle</code>　团队 ID：<code>6J48WYSF8N</code>　商店名：<code>Potion Sort: Alchemy</code></p></blockquote>
+<hr>
+<h2 id="h2">先看这里：你现在有 5 个硬阻塞</h2>
+<p>这 5 件事不解决，无论怎么点 Archive 都上不去。按顺序处理。</p>
+<div class="tw"><table><thead><tr><th>#</th><th>阻塞项</th><th>现状</th><th>后果</th></tr></thead><tbody><tr><td>1</td><td><strong>Xcode 版本太旧</strong></td><td>现为 Xcode 16.4 / iOS 18.5 SDK，需装 <strong>Xcode 27.2</strong></td><td>Apple 自 2026-04-28 起要求 <strong>Xcode 26 + iOS 26 SDK</strong> 起步，旧版上传直接被拒</td></tr><tr><td>2</td><td><del><strong>macOS 版本不够</strong></del> <strong>已解决</strong></td><td>已升至 macOS 27.2.1（26B131）</td><td>Xcode 27 要求 macOS 26.6+，已满足</td></tr><tr><td>3</td><td><strong>没有分发签名凭据</strong></td><td>只有 <code>PotionSort Dev</code>（开发型）</td><td>上传报 <code>Invalid Provisioning Profile</code></td></tr><tr><td>4</td><td><del><strong>工程声明支持 iPad</strong></del> <strong>已解决</strong></td><td>已改为仅 iPhone（<code>TARGETED_DEVICE_FAMILY = 1</code>）</td><td>不再强制要 iPad 截图</td></tr><tr><td>5</td><td><del><strong>隐私政策/支持网址未就绪</strong></del> <strong>已解决</strong></td><td>已部署 GitHub Pages，两个地址均返回 200</td><td>可直接填写</td></tr></tbody></table></div>
+<p>另外有一条<strong>决策级</strong>问题，见附录 B：<strong>中国大陆区上架游戏必须提供版号（ISBN）</strong>，没有版号就要在销售范围里取消中国大陆。</p>
+<hr>
+<h1 id="h3">阶段 0　环境准备</h1>
+<h2 id="h4">0.1 升级 macOS　✅ 已完成</h2>
+<ol><li>左上角  → `系统设置` → `通用` → `软件更新`</li><li>升级到当前最新版。**2026-11 的实际最新版是 macOS 27.2.1**</li><li>升级过程约 30~60 分钟，会让电脑重启，**先把手上工作存好**</li></ol>
+<blockquote><p>已升级完成：<strong>macOS 27.2.1（26B131）</strong>。</p><p>注意两个版本事实：</p><p>- 不要装 <code>macOS Sequoia 15.8.x</code>，那只是 15 的小版本，装完仍无法运行 Xcode 27</p><p>- macOS 26 是最后一版支持 Intel 芯片的系统，<strong>macOS 27 只支持 Apple 芯片</strong>（本机 M4，不受影响）</p></blockquote>
+<h2 id="h5">0.2 安装 Xcode 27</h2>
+<p><strong>方式 A（推荐，新手最省事）</strong>：打开 App Store，搜索 <code>Xcode</code>，因为已装 16.4，按钮会显示 <strong><code>更新</code></strong>，点它即可原地替换。</p>
+<blockquote><p>2026-11 实测数据：App Store 上 Xcode 为 <strong>27.2</strong>，下载 <strong>2.91 GB</strong>，展开后占 <strong>25 GB 左右</strong>，最低要求 macOS 26.6。</p></blockquote>
+<p><strong>方式 B（开发者网站）</strong>：访问 https://developer.apple.com/download/all/ ，用开发者账号登录，下载 <code>Xcode 27.x</code> 的 xip 包，解压后把 <code>Xcode.app</code> 拖进 <code>/Applications</code>。</p>
+<ul><li>❌ **不要手动删掉 `/Applications/Xcode.app`**：App Store 的「更新」是原地替换，删了会变成全量重装</li><li>首次打开会让你输入 Mac 密码安装附加组件，选 `Install`</li><li>接着会要求选择平台，勾上 `iOS`，点 `Download & Install`（这一步会再下几个 GB）</li><li>磁盘要求：升级系统后可用约 **80 GB**，装 Xcode 27 加 iOS 27 平台大约用掉 25~30 GB，够用</li></ul>
+<p><strong>验证是否成功</strong>：</p>
+<pre><code class="lang-bash">xcodebuild -version
+# 期望输出 Xcode 27.2
+
+xcodebuild -showsdks | grep iphoneos
+# 期望出现 iOS 27.x</code></pre>
+<blockquote><p>关于版本门槛：Apple 从 <strong>2026-04-28</strong> 起要求上传的包必须用 <strong>Xcode 26 + iOS 26 SDK</strong> 或更高构建；<strong>2026-09-14</strong> 起 App Store Connect 已接受 Xcode 27 + iOS 27 SDK。所以装 27.2 既满足最低要求，也是当前最新。</p></blockquote>
+<blockquote><p>如果 <code>xcodebuild</code> 还指向旧版，执行：</p><p><code>sudo xcode-select -s /Applications/Xcode.app/Contents/Developer</code></p></blockquote>
+<h2 id="h6">0.3 登录付费开发者账号</h2>
+<pre><code>Xcode → 菜单栏 Xcode → Settings（⌘,）→ Accounts → 左下角 + → Apple ID</code></pre>
+<p>登录后确认三点：</p>
+<ul><li>账号下能看到 **`6J48WYSF8N`** 这个团队</li><li>右侧角色是 `Account Holder` 或 `Admin`</li><li>本机只有这一个团队，选它不会错</li></ul>
+<h2 id="h7">0.4 检查商业协议状态</h2>
+<pre><code>App Store Connect（appstoreconnect.apple.com）
+  → 业务（Business）
+  → 协议、税务和银行业务</code></pre>
+<ul><li>「**免费 App**」协议必须是 **Active / 生效** 状态</li><li>若显示「待接受」，由 **Account Holder** 点同意（Admin 无权代签）</li><li>免费游戏不需要填税务和银行信息，只有收钱才需要</li></ul>
+<blockquote><p>这一步不通过，版本页面的「提交审核」按钮会是灰的，且不会告诉你原因。</p></blockquote>
+<hr>
+<h1 id="h8">阶段 1　修正 5 处工程配置</h1>
+<blockquote><p>这 5 处我已经帮你逐项定位好了。改法在下面，也可以让我直接改（见文末）。</p></blockquote>
+<h2 id="h9">1.1 只支持 iPhone（去掉 iPad）</h2>
+<p><strong>为什么</strong>：<code>TARGETED_DEVICE_FAMILY = "1,2"</code> 表示 iPhone + iPad。一旦声明支持 iPad，App Store 会强制要求上传 13 英寸 iPad 截图，而你的游戏是竖屏，在 iPad 上就是一块被拉大的手机画面，本来也不该支持。</p>
+<p><strong>改法</strong>：</p>
+<pre><code>Xcode 左侧点蓝色 App 工程 → TARGETS 下的 App
+  → General 标签
+  → 找到 "Supported Destinations"
+  → 只保留 iPhone，选中 iPad 点 - 删掉</code></pre>
+<h2 id="h10">1.2 锁定竖屏</h2>
+<p><strong>为什么</strong>：<code>Info.plist</code> 现在声明支持竖屏 + 左横 + 右横。游戏是竖屏布局，审核员一转手机就会看到错位破版，容易触发 2.1（崩溃/界面异常）。</p>
+<p><strong>改法</strong>：</p>
+<pre><code>TARGETS → App → General → Deployment Info
+  → Device Orientation
+  → 只勾 Portrait，取消勾选 Landscape Left / Landscape Right</code></pre>
+<h2 id="h11">1.3 删掉过时的 armv7 声明</h2>
+<p><strong>为什么</strong>：<code>Info.plist</code> 里有 <code>UIRequiredDeviceCapabilities = [armv7]</code>，这是 32 位时代的老写法。现在 App Store 只接受 64 位，这个声明会让 App 被判定为不支持现代设备。</p>
+<p><strong>改法</strong>：<code>Info.plist</code> 里找到 <code>Required device capabilities</code>，把 <code>armv7</code> 这一项整行删掉（键可以整条删除）。</p>
+<h2 id="h12">1.4 加出口合规声明（省掉每次上传被追问）</h2>
+<p><strong>为什么</strong>：每次上传完，App Store Connect 都会挂一个「缺少合规信息」的黄色提示，要你单独回答加密问题。提前写进 <code>Info.plist</code> 就不用管了。</p>
+<p><strong>改法</strong>：<code>Info.plist</code> 添加一个布尔项：</p>
+<pre><code>Key:   ITSAppUsesNonExemptEncryption
+Type:  Boolean
+Value: NO</code></pre>
+<blockquote><p>依据：你的游戏完全离线、不发起网络请求、不使用自定义加密算法。仅依赖系统自带的 HTTPS 属于豁免范围。</p></blockquote>
+<h2 id="h13">1.5 Privacy Manifest（先不做，看邮件决定）</h2>
+<p><strong>背景</strong>：Apple 自 2024-05-01 起要求声明「Required Reason API」的使用原因。你工程里没有 <code>PrivacyInfo.xcprivacy</code>。</p>
+<p><strong>做法</strong>：先按流程上传。上传后 30 分钟内检查开发者邮箱：</p>
+<ul><li>收到标题含 **`ITMS-91053: Missing API declaration`** 的邮件 → 按附录 C 补一个文件再重新上传</li><li>没收到 → 说明你的依赖没触发，不用管</li></ul>
+<hr>
+<h1 id="h14">阶段 2　打包前检查</h1>
+<p>每次 Archive 之前跑一遍，别跳。</p>
+<h2 id="h15">2.1 代码是最新的</h2>
+<pre><code class="lang-bash">cd ~/Projects/GameSource/Typescript/Potion-Sort
+git pull
+git status          # 应显示 working tree clean
+git log --oneline -1</code></pre>
+<h2 id="h16">2.2 内购开关是关的</h2>
+<pre><code class="lang-bash">grep "MONETIZATION_ENABLED" src/game/adService.ts
+# 必须是：export const MONETIZATION_ENABLED = false;</code></pre>
+<h2 id="h17">2.3 版本号与 build 号</h2>
+<div class="tw"><table><thead><tr><th>位置</th><th>当前值</th><th>说明</th></tr></thead><tbody><tr><td><code>MARKETING_VERSION</code>（版本号）</td><td><code>1.0</code></td><td>商店里显示的版本，首发就用 1.0</td></tr><tr><td><code>CURRENT_PROJECT_VERSION</code>（build 号）</td><td><code>1</code></td><td>每次上传必须比历史大</td></tr></tbody></table></div>
+<p>改的位置：</p>
+<pre><code>TARGETS → App → General
+  → Identity 区块
+  → Version: 1.0
+  → Build: 1</code></pre>
+<blockquote><p>如果上传时报「此 build 已存在」，把 Build 改成 <code>2</code> 再 Archive 一次。</p></blockquote>
+<h2 id="h18">2.4 同步前端资源到 iOS</h2>
+<pre><code class="lang-bash">cd ~/Projects/GameSource/Typescript/Potion-Sort
+npx cap sync ios</code></pre>
+<h2 id="h19">2.5 图标与显示名</h2>
+<div class="tw"><table><thead><tr><th>项</th><th>要求</th><th>你的现状</th></tr></thead><tbody><tr><td>App 图标</td><td>1024×1024，<strong>不能有透明通道</strong></td><td>✅ 1024，无 alpha</td></tr><tr><td>显示名</td><td>桌面图标下的名字</td><td>✅ <code>Potion Sort</code></td></tr><tr><td>Bundle ID</td><td>全小写、反向域名</td><td>✅ <code>com.potionsort.puzzle</code></td></tr></tbody></table></div>
+<hr>
+<h1 id="h20">阶段 3　Archive 与上传</h1>
+<h2 id="h21">3.1 打开工程</h2>
+<p>双击：</p>
+<pre><code>/Users/ql-001/Projects/GameSource/Typescript/Potion-Sort/ios/App/App.xcodeproj</code></pre>
+<blockquote><p>是 <code>.xcodeproj</code>，不是外层的文件夹。</p></blockquote>
+<h2 id="h22">3.2 改签名方式</h2>
+<pre><code>TARGETS → App → Signing &amp; Capabilities
+  → 勾选 Automatically manage signing
+  → Team 选 6J48WYSF8N</code></pre>
+<p>勾上后 Xcode 会自动向 Apple 申请 <code>Apple Distribution</code> 证书和 App Store 描述文件。<strong>不会影响 ⌘R 装机。</strong></p>
+<blockquote><p>如果报 <code>Failed to register bundle identifier</code>，说明 <code>com.potionsort.puzzle</code> 已被别的团队占用，需要换一个 Bundle ID（同时要改 <code>capacitor.config.ts</code> 里的 <code>appId</code>）。</p></blockquote>
+<h2 id="h23">3.3 选 Any iOS Device</h2>
+<p>Xcode 顶部工具栏中间的设备下拉菜单，从你的 iPhone 切换成：</p>
+<pre><code>Any iOS Device (arm64)</code></pre>
+<blockquote><p>不改这一步，<code>Product → Archive</code> 是<strong>灰色不可点</strong>的。</p></blockquote>
+<h2 id="h24">3.4 归档</h2>
+<pre><code>菜单栏 Product → Archive</code></pre>
+<ul><li>编译过程 3~10 分钟，控制台输出一大堆是正常的</li><li>成功后会**自动弹出 Organizer 窗口**，里面有一条 `1.0 (1)`</li><li>窗口没弹出来：`Window → Organizer` 手动打开</li></ul>
+<h2 id="h25">3.5 上传</h2>
+<pre><code>Organizer 里选中刚打的包 → 右侧 Distribute App
+  → App Store Connect → Next
+  → Upload → Next
+  → 签名保持默认（Automatically manage signing）→ Next
+  → 一路 Next → Upload</code></pre>
+<p>看到 <strong><code>Upload Success</code></strong> 才算成功。之后 10~40 分钟，构建版本会出现在 App Store Connect 里，状态从「正在处理」变为可用。</p>
+<h2 id="h26">3.6 上传报错对照表</h2>
+<div class="tw"><table><thead><tr><th>报错</th><th>原因</th><th>解决</th></tr></thead><tbody><tr><td><code>Invalid Toolchain. New apps must be built with the latest SDK</code></td><td>Xcode 版本太旧</td><td>回到阶段 0.2 装 Xcode 27</td></tr><tr><td><code>Invalid Provisioning Profile ... invalid for App Store submission</code></td><td>用了开发型描述文件</td><td>回到 3.2 改自动签名</td></tr><tr><td><code>No signing certificate "iOS Distribution" found</code></td><td>账号没登录，Xcode 无法自动签发</td><td>回 0.3 登录账号（本机只有 6J48WYSF8N 一个团队）</td></tr><tr><td><code>The bundle version must be higher than the previously uploaded version</code></td><td>build 号重复</td><td>改 Build 号为 2 再 Archive</td></tr><tr><td><code>Missing app icon. The app icon set ... has an unassigned child</code></td><td>图标规格不对</td><td>确认 <code>AppIcon-512@2x.png</code> 是 1024×1024 无 alpha</td></tr><tr><td><code>ITMS-91053: Missing API declaration</code></td><td>缺 Privacy Manifest</td><td>按附录 C 处理</td></tr><tr><td><code>Failed to register bundle identifier</code></td><td>Bundle ID 被占用</td><td>换 ID，同步改 <code>capacitor.config.ts</code></td></tr></tbody></table></div>
+<hr>
+<h1 id="h27">阶段 4　在 App Store Connect 建 App 记录</h1>
+<h2 id="h28">4.1 新建 App</h2>
+<pre><code>appstoreconnect.apple.com → 我的 App → 左上角 + → 新建 App</code></pre>
+<p>逐字段填写：</p>
+<div class="tw"><table><thead><tr><th>字段</th><th>填什么</th></tr></thead><tbody><tr><td>平台</td><td>勾选 <strong>iOS</strong>（不要勾 iPadOS / macOS）</td></tr><tr><td>名称</td><td><code>Potion Sort: Alchemy</code></td></tr><tr><td>主要语言</td><td><code>English (U.S.)</code></td></tr><tr><td>Bundle ID</td><td>下拉选 <code>com.potionsort.puzzle</code></td></tr><tr><td>SKU</td><td><code>POTIONSORT001</code>（内部编号，随便填，之后不可改）</td></tr><tr><td>用户访问权限</td><td>完全访问</td></tr></tbody></table></div>
+<blockquote><p>SKU 只是给你自己看的库存编号，不对外显示，也不能更改，建议用有意义的固定值。</p></blockquote>
+<h2 id="h29">4.2 价格与销售范围</h2>
+<pre><code>左侧 定价与销售范围</code></pre>
+<ul><li>**价格**：选 `免费`（Price 0）</li><li>**销售范围**：默认全选 175 个地区</li></ul>
+<p>⚠️ <strong>重要</strong>：如果你不想处理版号，这里必须点「编辑国家或地区」，把 <strong>中国大陆</strong> 取消勾选。无版号的游戏留在中国区，提交时会被要求上传 ISBN 批文，直接卡住。详见附录 B。</p>
+<h2 id="h30">4.3 App 信息</h2>
+<pre><code>左侧 App 信息</code></pre>
+<div class="tw"><table><thead><tr><th>字段</th><th>填什么</th></tr></thead><tbody><tr><td>副标题</td><td><code>Cozy ASMR Crystal Liquid Sort</code>（英文）/ <code>ASMR 倒液解压与萌宠炼金工坊</code>（中文）</td></tr><tr><td>类别（主要）</td><td><code>游戏</code> → <code>益智</code></td></tr><tr><td>类别（次要）</td><td><code>游戏</code> → <code>休闲</code></td></tr><tr><td>内容版权</td><td>选「不包含、展示或访问第三方内容」</td></tr><tr><td>年龄分级</td><td>见 4.4</td></tr><tr><td>隐私政策网址</td><td><code>https://1add2gamestudio.github.io/Potion-Sort/privacy.html</code></td></tr></tbody></table></div>
+<h2 id="h31">4.4 年龄分级问卷（2025 年 7 月新制）</h2>
+<p>Apple 已经把分级改成 <strong>4+ / 9+ / 13+ / 16+ / 18+</strong> 五档，不再是你自己选一个数字，而是答问卷由系统算。</p>
+<pre><code>App 信息 → 年龄分级 → 编辑</code></pre>
+<p><strong>第 1 步 功能（全部选「否」）</strong></p>
+<div class="tw"><table><thead><tr><th>问题</th><th>答案</th></tr></thead><tbody><tr><td>家长控制</td><td>否</td></tr><tr><td>年龄保证</td><td>否</td></tr><tr><td>不受限的网页访问</td><td>否</td></tr><tr><td>用户生成内容</td><td>否</td></tr><tr><td>信息和聊天</td><td>否</td></tr><tr><td>广告</td><td>否</td></tr></tbody></table></div>
+<p><strong>第 2~6 步 内容频率（全部选「无」）</strong></p>
+<ul><li>成人主题：低俗笑话 / 恐怖题材 / 烟酒毒品 → 全部「无」</li><li>医疗或保健：医疗治疗信息 → 「无」</li><li>性或裸体 → 「无」</li><li>暴力：卡通或奇幻暴力 / 现实暴力 / 武器 → 全部「无」</li><li>基于概率的活动：抽奖、战利品箱、模拟赌博 → 全部「无」</li></ul>
+<p><strong>第 7 步 其他信息</strong></p>
+<ul><li>社交媒体能力 → 否（游戏没有动态流、不能互相看内容）</li><li>年龄类别和覆盖 → 选 `不适用`，不要选「面向儿童」（选了就进 Kids 分类，规则严格得多）</li></ul>
+<p><strong>结果</strong>：系统会算出 <strong>4+</strong>，与你的文案一致。</p>
+<h2 id="h32">4.5 App 隐私</h2>
+<pre><code>左侧 App 隐私 → 开始填写</code></pre>
+<ul><li>第一问「是否收集数据」→ 选 **「否，我们不收集数据」**（Data Not Collected）</li><li>后续问卷全部跳过，直接发布</li></ul>
+<p>依据：无广告 SDK、无统计 SDK、无账号、无内购、无网络上传，存档只在设备本地（<code>localStorage</code>）。已核对依赖仅 <code>@capacitor/app</code>、<code>@capacitor/haptics</code>、<code>@capacitor/ios</code>。</p>
+<blockquote><p>一旦以后接入真实广告或统计 SDK，这一栏必须重填，否则算「隐私披露不实」，会被下架。</p></blockquote>
+<hr>
+<h1 id="h33">阶段 5　填版本页面</h1>
+<pre><code>左侧 App Store → 版本 1.0（准备提交）</code></pre>
+<h2 id="h34">5.1 截图</h2>
+<ul><li>位置：`预览与截屏` → **iPhone 6.9 英寸显示屏**</li><li>数量：1~10 张，你传 **5 张**</li><li>尺寸：**1290×2796** —— 已核实这是 6.9 英寸槽位接受的合法尺寸（Apple 官方列出 1260×2736 / 1290×2796 / 1320×2868 三种）</li><li>格式：PNG 或 JPEG，**不能带透明通道**，色彩空间 sRGB</li></ul>
+<p>文件在这里，按顺序拖进去：</p>
+<pre><code>_marketing_assets/appstore_screenshots/
+  01-主界面.png
+  02-倒水玩法.png
+  03-关卡地图.png
+  04-每日签到.png
+  05-商店.png</code></pre>
+<blockquote><p>前 3 张会出现在搜索结果里，决定点击率，顺序别乱。</p></blockquote>
+<h2 id="h35">5.2 描述类字段</h2>
+<p>全部现成文案在 <code>_marketing_assets/copywriting/03_appstore_metadata.md</code>，直接复制：</p>
+<div class="tw"><table><thead><tr><th>字段</th><th>字符上限</th><th>取自</th></tr></thead><tbody><tr><td>推广文本</td><td>170</td><td>该文件第二节</td></tr><tr><td>描述</td><td>4000</td><td>该文件第五节的英文/中文长描述</td></tr><tr><td>关键词</td><td>100</td><td>该文件第三节，英文逗号分隔、逗号后不加空格</td></tr><tr><td>支持网址</td><td><code>https://1add2gamestudio.github.io/Potion-Sort/support.html</code></td><td><code>support.html</code></td></tr><tr><td>营销网址（可选）</td><td>—</td><td><code>website/index.html</code> 部署地址</td></tr></tbody></table></div>
+<h2 id="h36">5.3 支持网址与隐私政策网址（已完成）</h2>
+<p>两个地址已上线，直接复制进表单：</p>
+<pre><code>支持网址      https://1add2gamestudio.github.io/Potion-Sort/support.html
+隐私政策网址  https://1add2gamestudio.github.io/Potion-Sort/privacy.html</code></pre>
+<p>部署方式是 GitHub Pages，发布源为仓库 <code>docs/</code> 目录（<code>docs/</code> 里有落地页 <code>index.html</code>、两个页面和 <code>.nojekyll</code>）。联系方式已统一为 <code>john99ftvn@gmail.com</code>。</p>
+<p><strong>以后要改这两页</strong>：改 <code>_marketing_assets/appstore_pages/*.html</code> → 覆盖到 <code>docs/</code> → 推送，约 1 分钟生效，表单里的地址不用动。</p>
+<p>⚠️ Apple 会真的点开这两个地址，且要求看到<strong>真实有效的联系方式</strong>。所以不要删掉 <code>docs/index.html</code> 和 <code>.nojekyll</code>，也不要让邮箱失效。</p>
+<h2 id="h37">5.4 构建版本</h2>
+<p>页面下方 <code>构建版本</code> → 点 <code>+</code> → 选中刚上传的 <code>1.0 (1)</code>。</p>
+<blockquote><p>如果列表是空的，等 10~40 分钟，或回阶段 3.5 确认上传真的成功了。</p></blockquote>
+<h2 id="h38">5.5 出口合规</h2>
+<p>会弹一个问题：<code>此 App 是否使用加密？</code></p>
+<ul><li>选 **「否」**（你的游戏完全离线，没有网络请求，也没用自定义加密）</li><li>若 1.4 已写入 `ITSAppUsesNonExemptEncryption = NO`，这一步通常不再出现</li></ul>
+<h2 id="h39">5.6 App 审核信息</h2>
+<pre><code>左侧 App 审核</code></pre>
+<div class="tw"><table><thead><tr><th>字段</th><th>填什么</th></tr></thead><tbody><tr><td>登录信息</td><td><strong>不勾「需要登录」</strong>，账号密码留空</td></tr><tr><td>联系电话</td><td>你的真实手机号（Apple 可能来电）</td></tr><tr><td>联系邮箱</td><td>常用邮箱</td></tr><tr><td>备注</td><td>见下</td></tr><tr><td>附件</td><td>不传</td></tr></tbody></table></div>
+<p><strong>备注（英文，直接粘贴）</strong></p>
+<pre><code>No account, no login, no server required. This is a fully offline single-player puzzle game.
+
+HOW TO PLAY
+Tap a flask to select it, then tap another flask to pour. A pour is only allowed when the colors match or the destination is empty. Fill a flask with 4 layers of the same color to seal it. Clear every color to finish the level.
+
+WHAT TESTERS WILL SEE
+- No advertising of any kind. No ad SDK is integrated.
+- No in-app purchases and no real-money transactions. All boosters are bought with in-game coins or crafted from essences earned by clearing levels.
+- No countdown timer and no move limit on any level. Levels cannot be failed by running out of time.
+- Lives are only spent when you retry a level. They refill automatically over time, and can also be refilled with in-game coins — never with real money. Festival Trials cost no lives at all. Running low on lives never locks any content.
+- All content is reachable by normal play. Nothing is gated behind payment or login.
+
+Localization: English and Simplified Chinese are both fully translated; the in-game settings menu switches languages live.
+
+If anything is unclear during review, please contact us at the email above and we will respond within 24 hours.</code></pre>
+<hr>
+<h1 id="h40">阶段 6　提交审核</h1>
+<h2 id="h41">6.1 提交前 10 项自检</h2>
+<pre><code>□ Xcode 27 已安装，xcodebuild -version 显示 27.x，SDK 为 iOS 27.x
+□ 系统为 macOS 27.2.1（Xcode 27 要求 26.6+）
+□ 已登录付费账号，Team 显示 6J48WYSF8N
+□ 商业协议里「免费 App」是 Active
+□ 已改成 Automatically manage signing 且签名无红色报错
+□ 设备只支持 iPhone、只支持竖屏
+□ build 号未与历史重复
+□ 截图 5 张已传，尺寸 1290×2796，无透明通道
+□ support.html / privacy.html 已部署且邮箱已替换
+□ 年龄分级问卷答完，结果 4+
+□ App 隐私选「不收集数据」
+□ 审核备注已粘贴</code></pre>
+<h2 id="h42">6.2 提交</h2>
+<p>页面右上角 <code>添加以供审核</code> → 确认 → <code>提交审核</code>。</p>
+<ul><li>如果按钮是灰的，页面顶部一定有红色提示，按提示补</li><li>提交后状态变为 `正在等待审核`</li></ul>
+<h2 id="h43">6.3 等待</h2>
+<div class="tw"><table><thead><tr><th>阶段</th><th>常见时长</th></tr></thead><tbody><tr><td>等待审核</td><td>几小时 ~ 48 小时（首次发布通常慢一些）</td></tr><tr><td>正在审核</td><td>几分钟 ~ 24 小时</td></tr><tr><td>结果</td><td>通过 / 被拒（元数据被拒会更快，几小时内）</td></tr></tbody></table></div>
+<p>期间可以在 <code>App Store Connect → 我的 App → 状态</code> 看进度，也可以留意邮箱。</p>
+<hr>
+<h1 id="h44">阶段 7　过审之后发布</h1>
+<pre><code>左侧 App Store → 版本 1.0
+→ 右侧「发布版本」按钮</code></pre>
+<p>前提是你当初选了 <strong>「手动发布」</strong>。如果选了自动，过审当下就上线了。</p>
+<p>发布后：</p>
+<ul><li>10~60 分钟内在 App Store 搜到</li><li>用手机打开 App Store 链接确认图标、截图、描述都正常</li><li>装一遍真机版本，确认首次启动有声、存档正常</li></ul>
+<hr>
+<h1 id="h45">阶段 8　被拒了怎么办</h1>
+<h2 id="h46">8.1 常见拒绝代码（针对你这个项目）</h2>
+<div class="tw"><table><thead><tr><th>代码</th><th>含义</th><th>为什么会撞上</th><th>怎么改</th></tr></thead><tbody><tr><td><strong>2.1</strong></td><td>App 崩溃或有明显 bug</td><td>存档结构不兼容、横屏破版</td><td>修好后重新上传 build，回复审核员说明已修</td></tr><tr><td><strong>2.3.1</strong></td><td>隐藏功能 / 描述与实际不符</td><td>文案写了游戏里没有的东西</td><td>改文案或改游戏，二选一</td></tr><tr><td><strong>2.2</strong></td><td>占位内容、不完整</td><td>隐藏的内购入口、空页面</td><td>确保 <code>MONETIZATION_ENABLED = false</code> 已生效</td></tr><tr><td><strong>3.1.1</strong></td><td>站外解锁付费内容</td><td>假广告按钮、「去广告」入口</td><td>已通过门控隐藏，重点是别让审核员看到</td></tr><tr><td><strong>4.2</strong></td><td>最低功能要求 / 太简单</td><td>单机小游戏被判套壳</td><td>强调关卡数量、机关种类、图鉴与成就系统</td></tr><tr><td><strong>5.1.1</strong></td><td>隐私政策问题</td><td>网址打不开、信息不全</td><td>部署可访问的页面，写清联系邮箱</td></tr><tr><td><strong>2.3.8</strong></td><td>截图不合规</td><td>截图里有不当内容</td><td>你的截图没问题</td></tr></tbody></table></div>
+<h2 id="h47">8.2 回复模板</h2>
+<p>不要重新提交整个版本，先在 <code>App Store Connect → 审核 → 被拒信息</code> 下方直接回复：</p>
+<pre><code>Hello,
+
+Thank you for the review. Regarding guideline X.X.X:
+
+(用一两句说清楚你做了什么修改，例如：
+ We have removed the hidden in-app purchase entry points entirely.
+ The new build 2 no longer contains any disabled or placeholder button.)
+
+We have uploaded a new build (1.0 build 2) for review. Please let us know
+if anything else is needed.
+
+Best regards,
+&lt;你的名字&gt;
+Potion Sort</code></pre>
+<p>要点：<strong>逐条对应</strong>、<strong>只讲改了什么</strong>、<strong>不要说「这是误会」</strong>。态度平和、事实清楚，二次过审概率很高。</p>
+<hr>
+<h1 id="h48">阶段 9　以后怎么更新版本</h1>
+<p>简化版，每次发新版本重复这几步：</p>
+<ol><li>`git pull` → 改代码 → `npx cap sync ios`</li><li>Xcode 里把 **Version** 改成 `1.1`（功能更新）或 `1.0.1`（修 bug），**Build 号继续往上加**</li><li>Archive → Distribute → Upload</li><li>App Store Connect 新建版本记录，填「此版本的新增内容」</li><li>上传新截图（只有界面变了才需要）</li><li>提交审核</li></ol>
+<blockquote><p>只改文案不改代码，可以在 App Store Connect 里直接改，不需要重新上传包（但要走一次元数据审核）。</p></blockquote>
+<hr>
+<h1 id="h49">附录 A　关键信息速查</h1>
+<div class="tw"><table><thead><tr><th>项</th><th>值</th></tr></thead><tbody><tr><td>工程路径</td><td><code>~/Projects/GameSource/Typescript/Potion-Sort</code></td></tr><tr><td>Xcode 工程</td><td><code>ios/App/App.xcodeproj</code></td></tr><tr><td>Bundle ID</td><td><code>com.potionsort.puzzle</code></td></tr><tr><td>团队 ID</td><td><code>6J48WYSF8N</code>（唯一团队）</td></tr><tr><td>商店名</td><td><code>Potion Sort: Alchemy</code></td></tr><tr><td>SKU</td><td><code>POTIONSORT001</code></td></tr><tr><td>版本 / Build</td><td><code>1.0</code> / <code>1</code></td></tr><tr><td>主要类别</td><td>游戏 → 益智</td></tr><tr><td>年龄分级</td><td>4+</td></tr><tr><td>价格</td><td>免费</td></tr><tr><td>截图尺寸</td><td>1290×2796（6.9 英寸槽位）</td></tr><tr><td>存档键</td><td><code>solstice_sort_profile_v2</code>（改了就丢档）</td></tr><tr><td>内购开关</td><td><code>src/game/adService.ts</code> → <code>MONETIZATION_ENABLED = false</code></td></tr></tbody></table></div>
+<h2 id="h50">文案文件索引</h2>
+<div class="tw"><table><thead><tr><th>文件</th><th>内容</th></tr></thead><tbody><tr><td><code>copywriting/01_main_descriptions.md</code></td><td>长描述（中英三版）</td></tr><tr><td><code>copywriting/02_feature_highlights.md</code></td><td>六个核心卖点</td></tr><tr><td><code>copywriting/03_appstore_metadata.md</code></td><td><strong>填表直接用</strong>：名称、副标题、关键词、推广文本、更新日志</td></tr><tr><td><code>copywriting/04_AppStoreConnect-填表清单.md</code></td><td>逐字段填表清单 + 代码变更记录</td></tr><tr><td><code>appstore_pages/privacy.html</code></td><td>隐私政策页（待替换邮箱、待部署）</td></tr><tr><td><code>appstore_pages/support.html</code></td><td>支持页（待替换邮箱、待部署）</td></tr><tr><td><code>appstore_screenshots/</code></td><td>5 张 1290×2796 商店截图</td></tr></tbody></table></div>
+<hr>
+<h1 id="h51">附录 B　中国大陆区与版号（必须做决定）</h1>
+<p>Apple 官方帮助明确写着：</p>
+<blockquote><p>游戏 App 必须取得<strong>网络游戏出版物号</strong>（版号 / ISBN）。为方便 Apple 验证，需上传 ISBN 核发单或批复文件，以及最新<strong>营业执照</strong>副本。</p></blockquote>
+<p>现实情况：</p>
+<div class="tw"><table><thead><tr><th>项</th><th>说明</th></tr></thead><tbody><tr><td>谁能申请</td><td>必须通过<strong>持有网络出版资质的中国出版单位</strong>提交，个人开发者不能自己申请</td></tr><tr><td>周期</td><td>通常 6~12 个月，且不保证获批</td></tr><tr><td>费用</td><td>通过代理办理通常数万元起</td></tr><tr><td>额外要求</td><td>部分 App 还需 ICP 备案号，且备案信息要与 App 信息一致</td></tr></tbody></table></div>
+<p><strong>结论与建议</strong>：</p>
+<ul><li>首发**不要**选中国大陆区，在「定价与销售范围」里取消它，其他 174 个地区正常上架</li><li>等有了版号，再回 App Store Connect 勾上中国大陆、填 ISBN，不需要重新提交版本</li><li>简体中文语言仍然可以保留（给海外华人用户用），只是不在中国大陆区销售</li></ul>
+<blockquote><p>如果你的目标是先跑通上架流程、拿到一个真实上线的 App，这是唯一可行路径。硬要闯中国区，结果是被卡在提交环节，一步都动不了。</p></blockquote>
+<hr>
+<h1 id="h52">附录 C　Privacy Manifest（收到 ITMS-91053 才做）</h1>
+<p>在 <code>ios/App/App/</code> 下新建文件 <code>PrivacyInfo.xcprivacy</code>，内容：</p>
+<pre><code class="lang-xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;
+&lt;dict&gt;
+	&lt;key&gt;NSPrivacyTracking&lt;/key&gt;
+	&lt;false/&gt;
+	&lt;key&gt;NSPrivacyTrackingDomains&lt;/key&gt;
+	&lt;array/&gt;
+	&lt;key&gt;NSPrivacyCollectedDataTypes&lt;/key&gt;
+	&lt;array/&gt;
+	&lt;key&gt;NSPrivacyAccessedAPITypes&lt;/key&gt;
+	&lt;array&gt;
+		&lt;dict&gt;
+			&lt;key&gt;NSPrivacyAccessedAPIType&lt;/key&gt;
+			&lt;string&gt;NSPrivacyAccessedAPICategoryUserDefaults&lt;/string&gt;
+			&lt;key&gt;NSPrivacyAccessedAPITypeReasons&lt;/key&gt;
+			&lt;array&gt;
+				&lt;string&gt;CA92.1&lt;/string&gt;
+			&lt;/array&gt;
+		&lt;/dict&gt;
+	&lt;/array&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;</code></pre>
+<p>然后在 Xcode 里：</p>
+<pre><code>右键 App 文件夹 → Add Files to "App" → 选中 PrivacyInfo.xcprivacy
+→ 确认勾选了 App target → Add</code></pre>
+<p>最后重新 Archive 上传。<code>CA92.1</code> 的含义是「仅访问本 App 自己的偏好设置」，符合你的情况。</p>
+<hr>
+<h2 id="h53">最后一句话</h2>
+<p>整个流程真正的卡点只有三个：<strong>Xcode 版本</strong>、<strong>签名凭据</strong>、<strong>两个网址</strong>。其余都是照表填写。</p>
+<p>按阶段 0 → 1 → 2 走完，再 Archive，成功率最高。</p>
+</main>
+</div>
+</body>
+</html>

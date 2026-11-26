@@ -89,6 +89,8 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
         className="absolute inset-0 w-full h-full object-cover object-center"
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#2E0E5E]/40 via-transparent to-[#2D104F]/48" />
+      {/* Continue the bottom dock colour through the home-indicator safe area so the bar reads as full-bleed */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[var(--safe-bottom)] bg-[#3B108C]" />
 
       {/* TOP BAR (Avatar -> Achievements, Coins Pill, Hearts Pill, 3D Settings) */}
       <header className="relative z-20 px-3 flex items-center justify-between gap-1.5">

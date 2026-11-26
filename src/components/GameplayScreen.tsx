@@ -1215,20 +1215,12 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       ref={stageRef}
       className="relative w-full h-full flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-game-body select-none"
     >
-      {/* Seamless top extension slice + Cabinet background */}
-      <img
-        src={stageImage}
-        alt=""
-        aria-hidden="true"
-        referrerPolicy="no-referrer"
-        className="pointer-events-none absolute top-0 inset-x-0 w-full h-[56px] object-cover object-top"
-      />
+      {/* Cabinet background (top edge pre-extended in the artwork, no seam patch needed) */}
       <img
         src={stageImage}
         alt={stageAlt}
         referrerPolicy="no-referrer"
         className="absolute inset-0 w-full h-full object-cover object-center"
-        style={{ transform: 'translateY(3.2%)' }}
       />
       <div className={`pointer-events-none absolute inset-0 ${atmosphereOverlay}`} />
 

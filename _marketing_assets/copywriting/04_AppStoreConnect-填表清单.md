@@ -10,16 +10,18 @@
 
 只上传到 **6.9 英寸显示屏** 那一栏，3~10 张。其他尺寸栏位留空即可，苹果会自动缩放。
 
-按顺序拖：
+按顺序拖（**英文界面版，2026-11-25 21:00 用真实 build 渲染重截，1290×2796，无透明通道**）：
 
 ```
-桌面/PotionSort-上架截图-真实版/
+桌面/PotionSort-上架截图-英文版/
   01-主界面.png     ← 首图（决定搜索结果里的缩略图，最重要）
   02-倒水玩法.png
   03-关卡地图.png
   04-每日签到.png
   05-商店.png
 ```
+
+> 中文版旧图在 `桌面/PotionSort-上架截图-真实版/`，仅作对照；商店主语言是英语（美国），上传英文版可避免「截图语言与列表语言不一致」的追问。
 
 **这批图必须重新截**（2026-11-25）。原因是旧图与新版界面已经对不上：
 
@@ -36,10 +38,18 @@
 
 ## 2. 推广文本（Promotional Text，≤170 字符）
 
-**English（164）**
+**English（136，安全余量）**
 ```
-Pour shimmering potions with real ASMR audio — no timers, no move limits. Beat 4 obstacle twists, tap your fox & dragon for pep talks, and collect 6 cozy outcome artworks.
+Pour shimmering potions with real ASMR audio — no timers, no move limits. 4 obstacle twists, a talking fox, and 6 cozy outcome artworks.
 ```
+
+> ⚠️ 旧版本那条实际是 **171 字符**（原记的 164 数错了），会被 ASC 判定超限，已替换为上面这条 136 字符的版本。
+
+**副标题（Subtitle，≤30 字符，必填）**
+```
+Cozy ASMR potion sort puzzle
+```
+（28 字符）
 
 **简体中文（94 字）**
 ```
@@ -287,7 +297,7 @@ WHAT TESTERS WILL SEE
 - Lives are only spent when you retry a level. They refill automatically over time, and can also be refilled with in-game coins — never with real money. Festival Trials cost no lives at all. Running low on lives never locks any content.
 - All content is reachable by normal play. Nothing is gated behind payment or login.
 
-Localization: English and Simplified Chinese are both fully translated; the in-game settings menu switches languages live.
+Localization: English and Simplified Chinese are both fully translated; the in-game settings menu switches languages live. The app launches in English by default, and all App Store screenshots were captured from the English UI of this build.
 
 If anything is unclear during review, please contact us at the email above and we will respond within 24 hours.
 ```

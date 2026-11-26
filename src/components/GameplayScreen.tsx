@@ -1225,7 +1225,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
       <div className={`pointer-events-none absolute inset-0 ${atmosphereOverlay}`} />
 
       {/* TOP HUD BAR */}
-      <header className="relative z-20 pt-3 px-3.5 flex flex-col items-center gap-1.5">
+      <header className="relative z-20 px-3.5 flex flex-col items-center gap-1.5">
         <div className="w-full flex items-center justify-between gap-2">
           {/* Left: Pause + Coin Pill */}
           <div className="flex items-center gap-2">

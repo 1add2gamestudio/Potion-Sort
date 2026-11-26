@@ -91,7 +91,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#2E0E5E]/40 via-transparent to-[#2D104F]/48" />
 
       {/* TOP BAR (Avatar -> Achievements, Coins Pill, Hearts Pill, 3D Settings) */}
-      <header className="relative z-20 pt-3.5 px-3 flex items-center justify-between gap-1.5">
+      <header className="relative z-20 px-3 flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-2 min-w-0">
           {/* Fox Alchemist Mascot Portrait -> Achievements & Codex */}
           <button

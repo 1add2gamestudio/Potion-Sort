@@ -64,7 +64,7 @@ const SubViewShell: React.FC<SubViewShellProps> = ({
   const { t } = useI18n();
   return (
     <div
-      className={`relative w-full h-full flex flex-col overflow-hidden ${bgClassName} text-[#4A2305] font-game-body select-none`}
+      className={`relative w-full h-full flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${bgClassName} text-[#4A2305] font-game-body select-none`}
     >
       <div className="px-2.5 pt-2.5 pb-1 shrink-0">
         <header className="candy-panel-purple px-3 py-2.5 flex items-center justify-between gap-2">

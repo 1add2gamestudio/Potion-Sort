@@ -183,7 +183,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="absolute inset-0 z-40 flex items-center justify-center bg-[#3E1B04]/60 p-3.5 font-game-body"
+      className="absolute inset-0 z-40 flex items-center justify-center bg-[#3E1B04]/60 p-3.5 pt-[calc(env(safe-area-inset-top)+14px)] pb-[calc(env(safe-area-inset-bottom)+14px)] font-game-body"
     >
       <div className="candy-panel-frame w-full max-w-[348px] max-h-[92dvh] overflow-y-auto p-3.5 text-[#4A2305]">
         {/* PAUSED */}

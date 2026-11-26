@@ -80,7 +80,7 @@ export const TitleHomeScreen: React.FC<TitleHomeScreenProps> = ({
   ];
 
   return (
-    <div className="relative w-full h-full flex flex-col justify-between overflow-hidden font-game-body select-none">
+    <div className="relative w-full h-full flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-game-body select-none">
       {/* Locked Sunlit Conservatory Key Art (Fox Alchemist + Sky Dragon + Purple Cauldron) */}
       <img
         src={solsticeHome3dSceneImg}

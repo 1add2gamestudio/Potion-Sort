@@ -910,7 +910,7 @@ export default function App() {
               triggerSemanticHaptic(profile.hapticsEnabled, 'tap');
             }
           }}
-          className="relative w-full h-[100dvh] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:pt-0 sm:pb-0 sm:h-[min(860px,94dvh)] sm:max-w-[420px] sm:rounded-[34px] sm:border-[6px] sm:border-[#783A09] sm:shadow-[0_24px_60px_rgba(92,42,4,0.35)] overflow-hidden bg-[#260B4E]"
+          className="relative w-full h-[100dvh] sm:h-[min(860px,94dvh)] sm:max-w-[420px] sm:rounded-[34px] sm:border-[6px] sm:border-[#783A09] sm:shadow-[0_24px_60px_rgba(92,42,4,0.35)] overflow-hidden bg-[#260B4E]"
         >
           {screen === 'HOME' && (
             <TitleHomeScreen

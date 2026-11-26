@@ -1213,7 +1213,7 @@ export const GameplayScreen: React.FC<GameplayScreenProps> = ({
   return (
     <div
       ref={stageRef}
-      className="relative w-full h-full flex flex-col justify-between overflow-hidden font-game-body select-none"
+      className="relative w-full h-full flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-game-body select-none"
     >
       {/* Seamless top extension slice + Cabinet background */}
       <img

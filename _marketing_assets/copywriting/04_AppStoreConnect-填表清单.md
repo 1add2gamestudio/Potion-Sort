@@ -29,7 +29,9 @@ App 截屏：2556×1179、1179×2556、2622×1206、1206×2622
   06-成就画卷.png   ← 可选第 6 张，画面最丰满，建议保留
 ```
 
-> 渲染时已按真机 `env(safe-area-inset-top)=59pt` / `bottom=34pt` 预留灵动岛与 Home 条空白，截图与真机显示一致（`App.tsx` 根容器 `pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`）。若不预留，截图顶部会比真机高约 59pt。
+> **安全区处理（build 3 起）**：`pt/pb-[env(safe-area-inset-*)]` 已从 `App.tsx` 的 `main` 下移到各屏幕根节点（`TitleHomeScreen` / `GameplayScreen` / `SubViewShell`），背景因此铺满到屏幕边缘，只让内容内缩。build 2 及更早版本在顶部有一条 59pt 的纯 `#260B4E` 色带，build 3 已消除。
+>
+> 截图按 `safe-area-inset-top=59pt` / `bottom=34pt` 渲染，但没有绘制系统状态栏（时间/信号/电量）——真机上那 59pt 里是有内容的，所以不会显得空。App Store 不要求截图包含状态栏。
 >
 > 最少 3 张、最多 10 张即可提交，5~6 张是常见配置。
 

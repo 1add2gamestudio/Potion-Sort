@@ -171,3 +171,27 @@ jobs:
 
             直接下载下方 APK 到安卓手机安装即可（debug 签名，需允许未知来源）。
           files: ${{ steps.apk.outputs.apk_path }}
+
+      # ---------- 正式包：打 AAB → 用密钥签名 → 放到 Releases ----------
+      - name: Build signed release AAB
+        if: github.event_name != 'pull_request'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then echo "没有配置密钥，跳过"; exit 0; fi
+          # 1. 版本号 = 打包次数，保证每次都比上次大
+          sed -i "s/versionCode [0-9]*/versionCode ${GITHUB_RUN_NUMBER}/" android/app/build.gradle
+          # 2. 打一个没签名的 AAB
+          ./android/gradlew -p android bundleRelease --no-daemon
+          # 3. 把 Secrets 里的文字还原成密钥文件，给 AAB 签名，再删掉密钥
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$RUNNER_TEMP/upload.jks" -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" "$AAB" upload
+          rm -f "$RUNNER_TEMP/upload.jks"
+          # 4. 改个好认的名字，放到 Releases 的 latest-apk 里
+          NAME="PotionSort-release-vc${GITHUB_RUN_NUMBER}.aab"
+          cp "$AAB" "$NAME"
+          gh release upload latest-apk "$NAME" --clobber
